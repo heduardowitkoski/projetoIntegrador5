@@ -61,11 +61,11 @@ void loop() {
   int valor_LDR3 = analogRead(LDR3);
   int valor_LDR4 = analogRead(LDR4);
   int valor_LDR5 = analogRead(LDR5);
-  (valor_LDR1 > 900) ? Saida[0] = 1 : Saida[0] = 0;
-  (valor_LDR2 > 900) ? Saida[1] = 1 : Saida[1] = 0;
-  (valor_LDR3 > 900) ? Saida[2] = 1 : Saida[2] = 0;
-  (valor_LDR4 > 900) ? Saida[3] = 1 : Saida[3] = 0;
-  (valor_LDR5 > 900) ? Saida[4] = 1 : Saida[4] = 0;
+  (valor_LDR1 > 900) ? Saida[0] = 0 : Saida[0] = 1;
+  (valor_LDR2 > 900) ? Saida[1] = 0 : Saida[1] = 1;
+  (valor_LDR3 > 900) ? Saida[2] = 0 : Saida[2] = 1;
+  (valor_LDR4 > 900) ? Saida[3] = 0 : Saida[3] = 1;
+  (valor_LDR5 > 900) ? Saida[4] = 0 : Saida[4] = 1;
   Serial.print("Codigo: ");
   Serial.print(Saida[0]);
   Serial.print(Saida[1]);
