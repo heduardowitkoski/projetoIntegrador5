@@ -4,11 +4,10 @@ struct ChaveValor{
   char valor;
 };
 
-ChaveValor Alfabeto[26] = {
+ChaveValor Alfabeto[27] = {
   {{0,0,0,0,1}, 'A'}, 
   {{1,1,1,1,0}, 'B'}, 
   {{0,0,0,0,0}, 'C'}, 
-  {{0,0,0,0,0}, 'Ç'}, 
   {{0,0,0,1,0}, 'D'}, 
   {{0,0,0,0,0}, 'E'}, 
   {{1,1,1,0,1}, 'F'}, 
@@ -34,11 +33,14 @@ ChaveValor Alfabeto[26] = {
   {{0,0,0,1,0}, 'Z'}
 };
 
-const int LDR1 = 32; //D32
-const int LDR2 = 33; //D33
-const int LDR3 = 34; //D34
-const int LDR4 = 35; //D35
-const int LDR5 = 36; //UP
+const int LDR1 = 33;
+const int LDR2 = 32;
+const int LDR3 = 35;
+const int LDR4 = 34;
+//const int LDR5 = 36; //pino SVP
+byte Saida[5];
+
+const int LIMITE = 4000;
 
 //comparação da saída dos LDR com a chave das letras do alfabeto
 bool comparaArrays(byte arr1[], byte arr2[], int tamanho_chave){
@@ -54,34 +56,28 @@ void setup() {
   Serial.begin(115200);
 }
 
-
+// the loop function runs over and over again forever
 void loop() {
-  //LEITURA DOS PINOS
   int valor_LDR1 = analogRead(LDR1);
   int valor_LDR2 = analogRead(LDR2);
   int valor_LDR3 = analogRead(LDR3);
   int valor_LDR4 = analogRead(LDR4);
   int valor_LDR5 = analogRead(LDR5);
   //METRICA PARA DECIDIR QUANDO DEDO ESTA ABAIXADO OU LEVANTADO (0 OU 1)
-  (valor_LDR1 > 4000) ? Saida[0] = 0 : Saida[0] = 1;
-  (valor_LDR2 > 4000) ? Saida[1] = 0 : Saida[1] = 1;
-  (valor_LDR3 > 4000) ? Saida[2] = 0 : Saida[2] = 1;
-  (valor_LDR4 > 4000) ? Saida[3] = 0 : Saida[3] = 1;
-  (valor_LDR5 > 4000) ? Saida[4] = 0 : Saida[4] = 1;
-  Serial.print("Codigo: ");
-  Serial.print(Saida[0]);
-  Serial.print(Saida[1]);
-  Serial.print(Saida[2]);
-  Serial.print(Saida[3]);
-  Serial.print(Saida[4]);
-  Serial.print("\n=============\n");
-  //PRINTA APENAS LETRAS CORRESPONDENTES
-  for(int i=0;i<26;i++){
-    if(comparaArrays(Saida, Alfabeto[i].chave, 5)){
-      Serial.print("Letra: ");
-      Serial.print(Alfabeto[i].valor);
-      Serial.print("\n");
-    }
-  }
+  (valor_LDR1 > LIMITE) ? Saida[0] = 0 : Saida[0] = 1;
+  (valor_LDR2 > LIMITE) ? Saida[1] = 0 : Saida[1] = 1;
+  (valor_LDR3 > LIMITE) ? Saida[2] = 0 : Saida[2] = 1;
+  (valor_LDR4 > LIMITE) ? Saida[3] = 0 : Saida[3] = 1;
+  //(valor_LDR5 > LIMITE) ? Saida[4] = 0 : Saida[4] = 1;
+  Serial.print(valor_LDR1);
+  Serial.print("\n");
+  Serial.print(valor_LDR2);
+  Serial.print("\n");
+  Serial.print(valor_LDR3);
+  Serial.print("\n");
+  Serial.print(valor_LDR4);
+  Serial.print("\n");
+  //Serial.print(valor_LDR5);
+  Serial.print("\n");
   delay(1000);
 }
