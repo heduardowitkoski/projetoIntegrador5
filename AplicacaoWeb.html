@@ -3,230 +3,346 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRGL - App de Libras</title>
-    <!-- Tailwind CSS para estilização rápida e moderna -->
+    <title>SRGL - Aprenda Libras</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts para uma tipografia mais agradável -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Estilo base usando a fonte Inter */
-        body {
-            font-family: 'Inter', sans-serif;
+        body { font-family: 'Inter', sans-serif; }
+        .main-gradient { background-image: linear-gradient(to top right, #4f46e5, #6366f1); }
+        .btn-primary {
+            background-color: #14b8a6;
+            color: white;
+            transition: all 0.3s ease;
         }
-        /* Classe para uma animação sutil de pulso */
-        .pulse-live {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: .7;
-            }
-        }
+        .btn-primary:hover { background-color: #0d9488; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-6px); box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1); }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gray-200 flex items-center justify-center min-h-screen">
 
     <div class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div class="h-[640px] flex flex-col">
+        <div class="h-[700px] flex flex-col">
 
-            <!-- ======================================================= -->
-            <!-- TELA INICIAL / HOME                                     -->
-            <!-- ======================================================= -->
-            <div id="screenHome" class="flex flex-col h-full p-6 text-center bg-blue-700 text-white">
+            <div id="screenHome" class="flex flex-col h-full p-8 text-center main-gradient text-white">
                 <div class="flex-1 flex flex-col items-center justify-center">
-                    <div class="bg-white/20 p-4 rounded-full mb-6">
+                    <div class="bg-white/20 p-4 rounded-full mb-6 backdrop-blur-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M12 10v4"/><path d="M12 18.5a2.5 2.5 0 0 1-5 0V16a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 1-5 0V16"/><path d="M12 14h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 5 0V16a2 2 0 0 0-2-2h-1"/></svg>
                     </div>
-                    <h1 class="text-4xl font-extrabold mb-2">SRGL</h1>
-                    <p class="text-blue-200 mb-12 max-w-xs mx-auto">Sistema de Reconhecimento de Gestos em Libras</p>
+                    <h1 class="text-5xl font-extrabold mb-2">SRGL</h1>
+                    <p class="text-indigo-200 mb-12 max-w-xs mx-auto">Sua jornada para aprender Libras começa aqui.</p>
                     <div class="w-full flex flex-col space-y-4">
-                        <button onclick="showScreen('screenTraducao')" class="w-full bg-white text-blue-700 font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                        <button onclick="showScreen('screenTraducao')" class="w-full bg-white text-indigo-600 font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
                             Modo Tradução
                         </button>
-                        <button onclick="showScreen('screenAprendizagem')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                        <button onclick="showScreen('screenSelecaoLicao')" class="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
                             Modo Aprendizagem
                         </button>
                     </div>
                 </div>
-                <div class="text-xs text-blue-300 mt-6">Projeto Integrador V</div>
+                <div class="text-xs text-indigo-300 mt-6">Projeto Integrador V</div>
             </div>
 
-            <!-- ======================================================= -->
-            <!-- TELA 1: MODO TRADUÇÃO (AGORA COM LÓGICA)              -->
-            <!-- ======================================================= -->
-            <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
-                <div class="flex items-center mb-4">
-                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-blue-600">&larr; Voltar</button>
-                    <h2 class="flex-1 text-center text-xl font-bold text-gray-800">Modo Tradução</h2>
+            <div id="screenSelecaoLicao" class="hidden flex-col h-full p-6 bg-gray-50">
+                <div class="flex items-center mb-6">
+                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
+                    <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Lições</h2>
                 </div>
-                
-                 <!-- NOVO: Campo para IP e botão de conexão -->
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="espIpInput" placeholder="IP do ESP32" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="connectButton" onclick="toggleConnection()" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600">Conectar</button>
-                </div>
+                <p class="text-center text-gray-600 mb-6">Escolha uma categoria para começar a praticar.</p>
+                <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                    </div>
+            </div>
 
+            <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
+                 <div class="flex items-center mb-4">
+                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
+                    <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Tradução</h2>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="espIpInput" placeholder="IP do ESP32" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="connectButton" onclick="toggleConnection()" class="px-5 py-3 btn-primary font-semibold rounded-xl shadow-md">Conectar</button>
+                </div>
                 <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6">
                     <p id="statusTraducao" class="text-lg text-gray-500 font-semibold mb-4">Status: Desconectado</p>
-                    <div id="gestoExibido" class="text-9xl font-extrabold text-blue-600">
-                        -
-                    </div>
-                    <p class="text-gray-500 mt-4 text-center">Insira o IP e conecte para iniciar.</p>
+                    <div id="gestoExibido" class="text-9xl font-extrabold text-indigo-600">-</div>
                 </div>
-                <div class="mt-4 p-4 bg-gray-200 rounded-lg h-24 flex flex-col justify-center">
-                    <p class="text-sm text-gray-600 mb-1">Palavra formada:</p>
-                    <p id="palavraFormada" class="text-lg text-gray-800 font-semibold">-</p>
+                <div class="mt-4 p-4 bg-gray-100 rounded-xl">
+                    <div class="flex items-center mb-1">
+                        <p class="text-sm text-gray-600 font-medium">Palavra formada:</p>
+                        <button onclick="limparPalavra()" class="ml-auto text-sm font-medium text-indigo-600 hover:text-indigo-800">Limpar</button>
+                    </div>
+                    <p id="palavraFormada" class="text-xl text-gray-800 font-semibold">-</p>
                 </div>
             </div>
 
-            <!-- ======================================================= -->
-            <!-- TELA 2: MODO APRENDIZAGEM                               -->
-            <!-- ======================================================= -->
             <div id="screenAprendizagem" class="hidden flex-col h-full p-6 bg-gray-50">
-                <!-- (Conteúdo do modo aprendizagem permanece o mesmo) -->
-                <div class="flex items-center mb-6">
-                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-blue-600">&larr; Voltar</button>
-                    <h2 class="flex-1 text-center text-xl font-bold text-gray-800">Modo Aprendizagem</h2>
+                <div class="flex items-center mb-4">
+                    <button onclick="showScreen('screenSelecaoLicao')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</sapan>
+                    <h2 id="categoriaTitulo" class="flex-1 text-center text-2xl font-bold text-gray-800">Aprendendo</h2>
                 </div>
-                <div class="bg-blue-100 text-blue-800 p-4 rounded-xl text-center mb-6">
-                    <p class="font-semibold">Desafio da lição:</p>
-                    <p class="text-2xl font-bold">Replique o gesto para a letra "C"</p>
+                <div class="text-center mb-4 p-4 rounded-xl bg-indigo-100">
+                    <p class="font-semibold text-indigo-800">Soletrar a palavra:</p>
+                    <div id="palavraDesafioContainer" class="text-3xl font-bold text-indigo-600 tracking-widest mt-1">PALAVRA</div>
                 </div>
-                <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6 space-y-4">
-                    <p class="text-gray-500">Seu Gesto:</p>
-                    <div id="gestoUsuario" class="text-8xl font-extrabold text-gray-400">?</div>
-                    <div id="feedback" class="w-full p-3 bg-yellow-100 text-yellow-800 rounded-lg text-center font-semibold">
-                        Aguardando sua tentativa...
-                    </div>
+                <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6 space-y-2">
+                    <p class="text-gray-500 text-lg">Faça o gesto para a letra:</p>
+                    <div id="letraDesafioLabel" class="text-9xl font-extrabold text-teal-500">?</div>
+                    <div id="feedbackLabel" class="w-full p-3 rounded-lg text-center font-semibold">Aguarde...</div>
                 </div>
-                <div class="mt-6">
-                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 45%"></div>
-                    </div>
-                    <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg">
-                        Próximo Desafio
-                    </button>
-                </div>
+                 <div class="mt-4">
+                    <button id="proximaPalavraBtn" onclick="avancarLicao()" class="hidden w-full btn-primary font-bold py-4 px-6 rounded-xl shadow-lg">Próxima Palavra</button>
+                 </div>
             </div>
-
         </div>
     </div>
 
     <script>
-        // --- LÓGICA DE NAVEGAÇÃO ENTRE TELAS ---
-        const screens = ['screenHome', 'screenTraducao', 'screenAprendizagem'];
-        function showScreen(screenId) {
-            // Se estivermos saindo da tela de tradução, garante que a conexão seja encerrada.
-            if(isConnected) {
-                toggleConnection();
+        // =================================================================================
+        // ESTRUTURA DE DADOS DAS LIÇÕES
+        // =================================================================================
+        const licoes = [
+            {
+                categoria: "Cores",
+                icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.34 0 .67-.02 1-.05M12 2c5.52 0 10 4.48 10 10 0 .34-.02.67-.05 1M6.4 17.6A8 8 0 0 0 17.6 6.4"/></svg>`,
+                palavras: ["AZUL", "VERDE", "SOL"],
+                cor: "bg-blue-500"
+            },
+            {
+                categoria: "Frutas",
+                icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.56 16.5c-.83 1.33-2.33 2.5-4.56 2.5-1.44 0-2.67-.5-3.5-1.5-.83 1-2.06 1.5-3.5 1.5-2.23 0-3.73-1.17-4.56-2.5A8.2 8.2 0 0 1 2 12.35c0-4.42 3.58-8 8-8 2.22 0 4.22.9 5.66 2.34A8.01 8.01 0 0 1 22 12.35a8.1 8.1 0 0 1-.44 4.15z"/><path d="M16 4.34c-1.44-1.44-3.44-2.34-5.66-2.34-4.42 0-8 3.58-8 8a8.2 8.2 0 0 0 3.44 6.5"/></svg>`,
+                palavras: ["UVA", "MACA", "PERA"],
+                cor: "bg-red-500"
+            },
+            {
+                categoria: "Animais",
+                icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5v-2M13.5 20.5v-2"/><path d="M15.5 16.5a2 2 0 0 0-1.2-1.8c-1.3-.5-2.8-.5-4.1 0a2 2 0 0 0-1.2 1.8c0 .9.6 1.7 1.5 2h3.1c.9-.3 1.5-1.1 1.5-2Z"/><path d="M12 12.5a2.49 2.49 0 0 0-2.4 2 2.5 2.5 0 0 0 4.9 0 2.49 2.49 0 0 0-2.5-2Z"/><path d="M2 12.83c0-2.82 2.18-5.11 5-5.63a8.8 8.8 0 0 1 10 0c2.82.52 5 2.81 5 5.63V15a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></svg>`,
+                palavras: ["GATO", "CAO", "LEAO"],
+                cor: "bg-yellow-500"
             }
-            screens.forEach(id => {
-                const screenElement = document.getElementById(id);
-                if (id === screenId) {
-                    screenElement.classList.remove('hidden');
-                    screenElement.classList.add('flex');
-                } else {
-                    screenElement.classList.add('hidden');
-                    screenElement.classList.remove('flex');
-                }
-            });
-        }
-
-        // --- LÓGICA DE COMUNICAÇÃO COM O ESP32 (O "CÓDIGO DOS BLOCOS") ---
-
-        // Elementos da interface que vamos manipular
-        const statusLabel = document.getElementById('statusTraducao');
-        const gestoLabel = document.getElementById('gestoExibido');
+        ];
+        
+        // =================================================================================
+        // VARIÁVEIS GLOBAIS E ELEMENTOS
+        // =================================================================================
+        const allScreens = ['screenHome', 'screenSelecaoLicao', 'screenTraducao', 'screenAprendizagem'];
         const ipInput = document.getElementById('espIpInput');
+        
+        // Estado: Tradução
+        const statusLabelTraducao = document.getElementById('statusTraducao');
+        const gestoLabel = document.getElementById('gestoExibido');
         const connectButton = document.getElementById('connectButton');
         const palavraLabel = document.getElementById('palavraFormada');
+        let isConnected = false;
+        let traducaoTimer = null;
+        let palavraAtualTraducao = "-";
 
-        let isConnected = false; // Equivalente a Clock.TimerEnabled
-        let timerId = null; // Para guardar a referência do nosso "Clock"
-        let palavraAtual = "";
+        // Estado: Aprendizagem
+        const licoesContainer = document.getElementById('licoesContainer');
+        const categoriaTitulo = document.getElementById('categoriaTitulo');
+        const palavraDesafioContainer = document.getElementById('palavraDesafioContainer');
+        const letraDesafioLabel = document.getElementById('letraDesafioLabel');
+        const feedbackLabel = document.getElementById('feedbackLabel');
+        const proximaPalavraBtn = document.getElementById('proximaPalavraBtn');
+        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 };
+        let aprendizagemTimer = null;
+        let acertouLetraAtual = false;
 
-        // Função para buscar o gesto no ESP32
-        // Equivalente ao "when Clock.Timer" + "call Web.Get"
-        async function fetchGesto() {
-            const ip = ipInput.value;
-            if (!ip) {
-                statusLabel.textContent = "Erro: IP inválido";
-                return;
-            }
-            
-            try {
-                // A mágica acontece aqui: o 'fetch' busca a informação na URL
-                const response = await fetch(`http://${ip}/gesto`);
+        // =================================================================================
+        // INICIALIZAÇÃO DA APLICAÇÃO
+        // =================================================================================
+        window.onload = () => {
+            const savedIp = localStorage.getItem('espIpAddress');
+            if (savedIp) ipInput.value = savedIp;
+            gerarCartoesLicao();
+        };
 
-                // Equivalente ao "when Web.GotText"
-                if (response.ok) { // response.ok é o mesmo que "responseCode = 200"
-                    const letra = await response.text();
-                    gestoLabel.textContent = letra; // Atualiza o label do gesto
-
-                    // Lógica para formar palavras
-                    if(letra && (palavraAtual === "-" || palavraAtual.slice(-1) !== letra)) {
-                        palavraAtual = palavraAtual === "-" ? letra : palavraAtual + letra;
-                        palavraLabel.textContent = palavraAtual;
-                    }
-
-                    statusLabel.textContent = 'Status: Conectado';
-                    statusLabel.classList.remove('text-red-500');
-                    statusLabel.classList.add('text-green-500');
-
-                } else {
-                    statusLabel.textContent = `Erro: ${response.status}`;
-                }
-            } catch (error) {
-                console.error("Falha na comunicação:", error);
-                statusLabel.textContent = 'Erro de conexão';
-                statusLabel.classList.add('text-red-500');
-                statusLabel.classList.remove('text-green-500');
-                toggleConnection(); // Desconecta se houver um erro grave
-            }
+        function gerarCartoesLicao() {
+            licoesContainer.innerHTML = '';
+            licoes.forEach((licao, index) => {
+                licoesContainer.innerHTML += `
+                    <div onclick="iniciarLicao(${index})" class="card-hover flex items-center p-5 rounded-2xl shadow-sm cursor-pointer text-white ${licao.cor}">
+                        <div class="mr-4">${licao.icone}</div>
+                        <div>
+                            <h3 class="font-bold text-lg">${licao.categoria}</h3>
+                            <p class="text-sm opacity-80">${licao.palavras.join(', ')}</p>
+                        </div>
+                        <span class="ml-auto font-bold">&rarr;</span>
+                    </div>
+                `;
+            });
         }
+        
+        // =================================================================================
+        // NAVEGAÇÃO E CONTROLE GERAL
+        // =================================================================================
+        function showScreen(screenId) {
+            // Encerra qualquer processo ativo antes de trocar de tela
+            if (isConnected) toggleConnection();
+            if (aprendizagemTimer) encerrarLicao();
 
-        // Função para conectar e desconectar
-        // Equivalente ao bloco "when Button.Click"
+            allScreens.forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+        
+        // =================================================================================
+        // MODO TRADUÇÃO
+        // =================================================================================
         function toggleConnection() {
             if (isConnected) {
-                // Se está conectado, vamos desconectar
-                clearInterval(timerId); // Para o "Clock"
-                timerId = null;
+                clearInterval(traducaoTimer);
                 isConnected = false;
-                
+                ipInput.disabled = false;
                 connectButton.textContent = 'Conectar';
-                connectButton.classList.remove('bg-red-500', 'hover:bg-red-600');
-                connectButton.classList.add('bg-green-500', 'hover:bg-green-600');
-                statusLabel.textContent = 'Status: Desconectado';
-                statusLabel.classList.remove('text-green-500', 'text-red-500');
-                ipInput.disabled = false; // Libera o campo de IP
-                palavraAtual = "-"; // Reseta a palavra
-                palavraLabel.textContent = palavraAtual;
-                gestoLabel.textContent = "-";
-
+                connectButton.classList.remove('bg-red-500');
+                statusLabelTraducao.textContent = 'Status: Desconectado';
             } else {
-                // Se está desconectado, vamos conectar
-                if (!ipInput.value) {
-                    alert("Por favor, insira um endereço de IP.");
-                    return;
-                }
+                const ip = ipInput.value.trim();
+                if (!ip) { alert("Por favor, insira um endereço de IP."); return; }
+                localStorage.setItem('espIpAddress', ip);
+
                 isConnected = true;
-                ipInput.disabled = true; // Bloqueia o campo de IP
-                fetchGesto(); // Chama uma vez imediatamente
-                timerId = setInterval(fetchGesto, 1200); // Inicia o "Clock" (a cada 1.2s)
-                
+                ipInput.disabled = true;
+                traducaoTimer = setInterval(fetchGestoTraducao, 1200);
                 connectButton.textContent = 'Parar';
-                connectButton.classList.remove('bg-green-500', 'hover:bg-green-600');
-                connectButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                connectButton.classList.add('bg-red-500');
+                statusLabelTraducao.textContent = 'Status: Conectado';
             }
         }
 
+        async function fetchGestoTraducao() {
+            try {
+                const response = await fetch(`http://${ipInput.value}/gesto`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const letra = await response.text();
+                
+                if (letra !== '?') {
+                    gestoLabel.textContent = letra;
+                    if (palavraAtualTraducao.slice(-1) !== letra) {
+                        palavraAtualTraducao = palavraAtualTraducao === "-" ? letra : palavraAtualTraducao + letra;
+                        palavraLabel.textContent = palavraAtualTraducao;
+                    }
+                }
+            } catch (error) {
+                console.error("Falha na comunicação (Tradução):", error);
+                statusLabelTraducao.textContent = 'Erro de Conexão';
+                toggleConnection(); // Desconecta em caso de erro
+            }
+        }
+
+        function limparPalavra() {
+            palavraAtualTraducao = "-";
+            palavraLabel.textContent = palavraAtualTraducao;
+        }
+
+        // =================================================================================
+        // MODO APRENDIZAGEM
+        // =================================================================================
+        function iniciarLicao(catIndex) {
+            const ip = ipInput.value.trim();
+            if (!ip) {
+                alert("Por favor, insira um IP na tela de Tradução antes de iniciar uma lição.");
+                return;
+            }
+
+            licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
+            categoriaTitulo.textContent = licoes[catIndex].categoria;
+            proximaPalavraBtn.classList.add('hidden');
+            showScreen('screenAprendizagem');
+            apresentarDesafio();
+
+            // Inicia o loop para verificar o gesto do usuário
+            aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
+        }
+
+        function apresentarDesafio() {
+            acertouLetraAtual = false;
+            const { catIndex, palavraIndex, letraIndex } = licaoAtual;
+            const palavra = licoes[catIndex].palavras[palavraIndex];
+            const letra = palavra[letraIndex];
+
+            palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
+                `<span class="${index < letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
+            ).join('');
+
+            letraDesafioLabel.textContent = letra;
+            feedbackLabel.textContent = 'Aguardando seu gesto...';
+            feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
+        }
+        
+        async function fetchGestoAprendizagem() {
+            if (acertouLetraAtual) return; // Pausa a verificação se o usuário já acertou a letra atual
+
+            try {
+                const response = await fetch(`http://${ipInput.value}/gesto`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const letraRecebida = await response.text();
+                
+                if (letraRecebida !== '?') {
+                    verificarGesto(letraRecebida);
+                }
+            } catch (error) {
+                console.error("Falha na comunicação (Aprendizagem):", error);
+                feedbackLabel.textContent = 'Erro de Conexão. Verifique o IP.';
+                feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
+                encerrarLicao(); // Para a lição se a conexão falhar
+            }
+        }
+
+        function verificarGesto(letraRecebida) {
+            const { catIndex, palavraIndex, letraIndex } = licaoAtual;
+            const palavra = licoes[catIndex].palavras[palavraIndex];
+            const letraCorreta = palavra[letraIndex];
+
+            if (letraRecebida === letraCorreta) {
+                acertouLetraAtual = true; // Trava a verificação
+                feedbackLabel.textContent = 'Correto!';
+                feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-green-800 bg-green-100';
+                licaoAtual.letraIndex++;
+
+                palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
+                    `<span class="${index < licaoAtual.letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
+                ).join('');
+
+                setTimeout(() => {
+                    if (licaoAtual.letraIndex >= palavra.length) { // Palavra completa
+                        feedbackLabel.textContent = 'Palavra completa!';
+                        proximaPalavraBtn.classList.remove('hidden');
+                        clearInterval(aprendizagemTimer); // Pausa o timer entre as palavras
+                        aprendizagemTimer = null;
+                    } else { // Prepara para a próxima letra
+                        apresentarDesafio();
+                    }
+                }, 1000);
+            } else {
+                feedbackLabel.textContent = `Incorreto. Tente a letra "${letraCorreta}" novamente.`;
+                feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
+            }
+        }
+        
+        function avancarLicao() {
+            proximaPalavraBtn.classList.add('hidden');
+            licaoAtual.palavraIndex++;
+            licaoAtual.letraIndex = 0;
+            
+            const { catIndex, palavraIndex } = licaoAtual;
+            if (palavraIndex >= licoes[catIndex].palavras.length) { // Lição completa
+                showScreen('screenSelecaoLicao');
+                alert('Parabéns! Você completou esta lição!');
+            } else {
+                apresentarDesafio();
+                // Reinicia o timer para a próxima palavra
+                if (!aprendizagemTimer) {
+                    aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
+                }
+            }
+        }
+
+        function encerrarLicao() {
+            clearInterval(aprendizagemTimer);
+            aprendizagemTimer = null;
+        }
     </script>
 </body>
 </html>
-
