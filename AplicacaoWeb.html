@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRGL - App de Libras</title>
+    <!-- Tailwind CSS para estilização rápida e moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts para uma tipografia mais agradável -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Estilo base usando a fonte Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Classe para uma animação sutil de pulso */
+        .pulse-live {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .7;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+    <div class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="h-[640px] flex flex-col">
+
+            <!-- ======================================================= -->
+            <!-- TELA INICIAL / HOME                                     -->
+            <!-- ======================================================= -->
+            <div id="screenHome" class="flex flex-col h-full p-6 text-center bg-blue-700 text-white">
+                <div class="flex-1 flex flex-col items-center justify-center">
+                    <div class="bg-white/20 p-4 rounded-full mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M12 10v4"/><path d="M12 18.5a2.5 2.5 0 0 1-5 0V16a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 1-5 0V16"/><path d="M12 14h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 5 0V16a2 2 0 0 0-2-2h-1"/></svg>
+                    </div>
+                    <h1 class="text-4xl font-extrabold mb-2">SRGL</h1>
+                    <p class="text-blue-200 mb-12 max-w-xs mx-auto">Sistema de Reconhecimento de Gestos em Libras</p>
+                    <div class="w-full flex flex-col space-y-4">
+                        <button onclick="showScreen('screenTraducao')" class="w-full bg-white text-blue-700 font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                            Modo Tradução
+                        </button>
+                        <button onclick="showScreen('screenAprendizagem')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                            Modo Aprendizagem
+                        </button>
+                    </div>
+                </div>
+                <div class="text-xs text-blue-300 mt-6">Projeto Integrador V</div>
+            </div>
+
+            <!-- ======================================================= -->
+            <!-- TELA 1: MODO TRADUÇÃO (AGORA COM LÓGICA)              -->
+            <!-- ======================================================= -->
+            <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
+                <div class="flex items-center mb-4">
+                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-blue-600">&larr; Voltar</button>
+                    <h2 class="flex-1 text-center text-xl font-bold text-gray-800">Modo Tradução</h2>
+                </div>
+                
+                 <!-- NOVO: Campo para IP e botão de conexão -->
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="espIpInput" placeholder="IP do ESP32" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="connectButton" onclick="toggleConnection()" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600">Conectar</button>
+                </div>
+
+                <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6">
+                    <p id="statusTraducao" class="text-lg text-gray-500 font-semibold mb-4">Status: Desconectado</p>
+                    <div id="gestoExibido" class="text-9xl font-extrabold text-blue-600">
+                        -
+                    </div>
+                    <p class="text-gray-500 mt-4 text-center">Insira o IP e conecte para iniciar.</p>
+                </div>
+                <div class="mt-4 p-4 bg-gray-200 rounded-lg h-24 flex flex-col justify-center">
+                    <p class="text-sm text-gray-600 mb-1">Palavra formada:</p>
+                    <p id="palavraFormada" class="text-lg text-gray-800 font-semibold">-</p>
+                </div>
+            </div>
+
+            <!-- ======================================================= -->
+            <!-- TELA 2: MODO APRENDIZAGEM                               -->
+            <!-- ======================================================= -->
+            <div id="screenAprendizagem" class="hidden flex-col h-full p-6 bg-gray-50">
+                <!-- (Conteúdo do modo aprendizagem permanece o mesmo) -->
+                <div class="flex items-center mb-6">
+                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-blue-600">&larr; Voltar</button>
+                    <h2 class="flex-1 text-center text-xl font-bold text-gray-800">Modo Aprendizagem</h2>
+                </div>
+                <div class="bg-blue-100 text-blue-800 p-4 rounded-xl text-center mb-6">
+                    <p class="font-semibold">Desafio da lição:</p>
+                    <p class="text-2xl font-bold">Replique o gesto para a letra "C"</p>
+                </div>
+                <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6 space-y-4">
+                    <p class="text-gray-500">Seu Gesto:</p>
+                    <div id="gestoUsuario" class="text-8xl font-extrabold text-gray-400">?</div>
+                    <div id="feedback" class="w-full p-3 bg-yellow-100 text-yellow-800 rounded-lg text-center font-semibold">
+                        Aguardando sua tentativa...
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 45%"></div>
+                    </div>
+                    <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg">
+                        Próximo Desafio
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- LÓGICA DE NAVEGAÇÃO ENTRE TELAS ---
+        const screens = ['screenHome', 'screenTraducao', 'screenAprendizagem'];
+        function showScreen(screenId) {
+            // Se estivermos saindo da tela de tradução, garante que a conexão seja encerrada.
+            if(isConnected) {
+                toggleConnection();
+            }
+            screens.forEach(id => {
+                const screenElement = document.getElementById(id);
+                if (id === screenId) {
+                    screenElement.classList.remove('hidden');
+                    screenElement.classList.add('flex');
+                } else {
+                    screenElement.classList.add('hidden');
+                    screenElement.classList.remove('flex');
+                }
+            });
+        }
+
+        // --- LÓGICA DE COMUNICAÇÃO COM O ESP32 (O "CÓDIGO DOS BLOCOS") ---
+
+        // Elementos da interface que vamos manipular
+        const statusLabel = document.getElementById('statusTraducao');
+        const gestoLabel = document.getElementById('gestoExibido');
+        const ipInput = document.getElementById('espIpInput');
+        const connectButton = document.getElementById('connectButton');
+        const palavraLabel = document.getElementById('palavraFormada');
+
+        let isConnected = false; // Equivalente a Clock.TimerEnabled
+        let timerId = null; // Para guardar a referência do nosso "Clock"
+        let palavraAtual = "";
+
+        // Função para buscar o gesto no ESP32
+        // Equivalente ao "when Clock.Timer" + "call Web.Get"
+        async function fetchGesto() {
+            const ip = ipInput.value;
+            if (!ip) {
+                statusLabel.textContent = "Erro: IP inválido";
+                return;
+            }
+            
+            try {
+                // A mágica acontece aqui: o 'fetch' busca a informação na URL
+                const response = await fetch(`http://${ip}/gesto`);
+
+                // Equivalente ao "when Web.GotText"
+                if (response.ok) { // response.ok é o mesmo que "responseCode = 200"
+                    const letra = await response.text();
+                    gestoLabel.textContent = letra; // Atualiza o label do gesto
+
+                    // Lógica para formar palavras
+                    if(letra && (palavraAtual === "-" || palavraAtual.slice(-1) !== letra)) {
+                        palavraAtual = palavraAtual === "-" ? letra : palavraAtual + letra;
+                        palavraLabel.textContent = palavraAtual;
+                    }
+
+                    statusLabel.textContent = 'Status: Conectado';
+                    statusLabel.classList.remove('text-red-500');
+                    statusLabel.classList.add('text-green-500');
+
+                } else {
+                    statusLabel.textContent = `Erro: ${response.status}`;
+                }
+            } catch (error) {
+                console.error("Falha na comunicação:", error);
+                statusLabel.textContent = 'Erro de conexão';
+                statusLabel.classList.add('text-red-500');
+                statusLabel.classList.remove('text-green-500');
+                toggleConnection(); // Desconecta se houver um erro grave
+            }
+        }
+
+        // Função para conectar e desconectar
+        // Equivalente ao bloco "when Button.Click"
+        function toggleConnection() {
+            if (isConnected) {
+                // Se está conectado, vamos desconectar
+                clearInterval(timerId); // Para o "Clock"
+                timerId = null;
+                isConnected = false;
+                
+                connectButton.textContent = 'Conectar';
+                connectButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                connectButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                statusLabel.textContent = 'Status: Desconectado';
+                statusLabel.classList.remove('text-green-500', 'text-red-500');
+                ipInput.disabled = false; // Libera o campo de IP
+                palavraAtual = "-"; // Reseta a palavra
+                palavraLabel.textContent = palavraAtual;
+                gestoLabel.textContent = "-";
+
+            } else {
+                // Se está desconectado, vamos conectar
+                if (!ipInput.value) {
+                    alert("Por favor, insira um endereço de IP.");
+                    return;
+                }
+                isConnected = true;
+                ipInput.disabled = true; // Bloqueia o campo de IP
+                fetchGesto(); // Chama uma vez imediatamente
+                timerId = setInterval(fetchGesto, 1200); // Inicia o "Clock" (a cada 1.2s)
+                
+                connectButton.textContent = 'Parar';
+                connectButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                connectButton.classList.add('bg-red-500', 'hover:bg-red-600');
+            }
+        }
+
+    </script>
+</body>
+</html>
+
