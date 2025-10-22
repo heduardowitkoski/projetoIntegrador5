@@ -136,6 +136,7 @@
         const palavraLabel = document.getElementById('palavraFormada');
         let isConnected = false;
         let traducaoTimer = null;
+        let palavraTimer = null;
         let palavraAtualTraducao = "-";
 
         // Estado: Aprendizagem
@@ -179,35 +180,51 @@
         // =================================================================================
         function showScreen(screenId) {
             // Encerra qualquer processo ativo antes de trocar de tela
-            if (isConnected) toggleConnection();
-            if (aprendizagemTimer) encerrarLicao();
+            if (isConnected) toggleConnection(); // Desconecta o modo Tradução se ativo
+            if (aprendizagemTimer) encerrarLicao(); // Encerra o modo Aprendizagem se ativo
 
             allScreens.forEach(id => document.getElementById(id).classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
+            // Se for para a tela de Tradução, garanta que o botão esteja no estado correto se já havia IP
+            if (screenId === 'screenTraducao' && ipInput.value.trim() !== '') {
+                connectButton.textContent = 'Conectar';
+                connectButton.classList.remove('bg-red-500');
+                statusLabelTraducao.textContent = 'Status: Desconectado';
+                isConnected = false; // Garante que o estado seja 'desconectado' ao entrar
+            }
         }
         
         // =================================================================================
         // MODO TRADUÇÃO
         // =================================================================================
         function toggleConnection() {
-            if (isConnected) {
+            if (isConnected) { // Se estava conectado, agora vai desconectar
                 clearInterval(traducaoTimer);
+                clearInterval(palavraTimer); // <-- PARA O NOVO TIMER
+                traducaoTimer = null; 
+                palavraTimer = null; // <-- LIMPA O NOVO TIMER
                 isConnected = false;
                 ipInput.disabled = false;
                 connectButton.textContent = 'Conectar';
                 connectButton.classList.remove('bg-red-500');
                 statusLabelTraducao.textContent = 'Status: Desconectado';
-            } else {
+            } else { // Se estava desconectado, agora vai conectar
                 const ip = ipInput.value.trim();
                 if (!ip) { alert("Por favor, insira um endereço de IP."); return; }
                 localStorage.setItem('espIpAddress', ip);
 
                 isConnected = true;
                 ipInput.disabled = true;
-                traducaoTimer = setInterval(fetchGestoTraducao, 1200);
+                
+                // Timer 1: Busca o gesto "ao vivo" a cada 1.2s
+                traducaoTimer = setInterval(fetchGestoTraducao, 1200); 
+                // Timer 2: Captura a letra para a palavra a cada 4s
+                palavraTimer = setInterval(concatenarLetra, 4000); // <-- INICIA O NOVO TIMER
+
                 connectButton.textContent = 'Parar';
                 connectButton.classList.add('bg-red-500');
-                statusLabelTraducao.textContent = 'Status: Conectado';
+                statusLabelTraducao.textContent = 'Status: Conectando...';
+                fetchGestoTraducao(); // Chama a função imediatamente
             }
         }
 
@@ -217,22 +234,36 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const letra = await response.text();
                 
-                if (letra !== '?') {
-                    gestoLabel.textContent = letra;
-                    if (palavraAtualTraducao.slice(-1) !== letra) {
-                        palavraAtualTraducao = palavraAtualTraducao === "-" ? letra : palavraAtualTraducao + letra;
-                        palavraLabel.textContent = palavraAtualTraducao;
-                    }
-                }
+                statusLabelTraducao.textContent = 'Status: Conectado';
+                gestoLabel.textContent = letra; // Mostra a letra (A, B, C, ou ?)
+
+                // A lógica de formar a palavra FOI REMOVIDA daqui
+                
             } catch (error) {
                 console.error("Falha na comunicação (Tradução):", error);
-                statusLabelTraducao.textContent = 'Erro de Conexão';
-                toggleConnection(); // Desconecta em caso de erro
+                statusLabelTraducao.textContent = 'Status: Erro de Conexão. Tentando novamente...';
+                gestoLabel.textContent = '!'; // Mostra erro
             }
         }
 
         function limparPalavra() {
             palavraAtualTraducao = "-";
+            palavraLabel.textContent = palavraAtualTraducao;
+        }
+
+        function concatenarLetra() {
+            // Pega a letra que está sendo exibida "ao vivo" no gestoLabel
+            const letra = gestoLabel.textContent;
+
+            // Não adiciona à palavra se for um símbolo de status (erro ou desconectado)
+            if (letra === '-' || letra === '!') {
+                return;
+            }
+
+            // --- LÓGICA SIMPLIFICADA ---
+            // A verificação 'if (palavraAtualTraducao.slice(-1) !== letra)' foi removida.
+            // Agora, a letra será sempre adicionada.
+            palavraAtualTraducao = palavraAtualTraducao === "-" ? letra : palavraAtualTraducao + letra;
             palavraLabel.textContent = palavraAtualTraducao;
         }
 
@@ -249,10 +280,12 @@
             licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
             categoriaTitulo.textContent = licoes[catIndex].categoria;
             proximaPalavraBtn.classList.add('hidden');
-            showScreen('screenAprendizagem');
+            showScreen('screenAprendizagem'); // Esta função já limpa timers anteriores
+
             apresentarDesafio();
 
             // Inicia o loop para verificar o gesto do usuário
+            // O timer só será nullificado em caso de erro persistente no catch (agora modificado)
             aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
         }
 
@@ -270,7 +303,7 @@
             feedbackLabel.textContent = 'Aguardando seu gesto...';
             feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
         }
-        
+
         async function fetchGestoAprendizagem() {
             if (acertouLetraAtual) return; // Pausa a verificação se o usuário já acertou a letra atual
 
@@ -279,14 +312,21 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const letraRecebida = await response.text();
                 
+                // Se a requisição foi bem-sucedida, redefina o status para "Aguardando..."
+                if (feedbackLabel.textContent.includes('Erro de Conexão')) {
+                    feedbackLabel.textContent = 'Aguardando seu gesto...';
+                    feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
+                }
+
                 if (letraRecebida !== '?') {
                     verificarGesto(letraRecebida);
                 }
             } catch (error) {
                 console.error("Falha na comunicação (Aprendizagem):", error);
-                feedbackLabel.textContent = 'Erro de Conexão. Verifique o IP.';
+                // Não encerra a lição, apenas muda o status para indicar o erro e continua tentando
+                feedbackLabel.textContent = 'Erro de Conexão. Verifique o IP ou a luva.';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
-                encerrarLicao(); // Para a lição se a conexão falhar
+                // O timer continua ativo, tentando reconectar/fetch a cada 1.2s
             }
         }
 
@@ -310,7 +350,7 @@
                         feedbackLabel.textContent = 'Palavra completa!';
                         proximaPalavraBtn.classList.remove('hidden');
                         clearInterval(aprendizagemTimer); // Pausa o timer entre as palavras
-                        aprendizagemTimer = null;
+                        aprendizagemTimer = null; // Importante para saber que está parado
                     } else { // Prepara para a próxima letra
                         apresentarDesafio();
                     }
@@ -320,7 +360,7 @@
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
             }
         }
-        
+
         function avancarLicao() {
             proximaPalavraBtn.classList.add('hidden');
             licaoAtual.palavraIndex++;
@@ -332,7 +372,8 @@
                 alert('Parabéns! Você completou esta lição!');
             } else {
                 apresentarDesafio();
-                // Reinicia o timer para a próxima palavra
+                // Reinicia o timer para a próxima palavra se ele estiver null
+                // Isso é importante porque clearInterval o define como null quando a palavra é completa
                 if (!aprendizagemTimer) {
                     aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
                 }
@@ -341,7 +382,9 @@
 
         function encerrarLicao() {
             clearInterval(aprendizagemTimer);
-            aprendizagemTimer = null;
+            aprendizagemTimer = null; // Garante que o estado do timer seja resetado
+            feedbackLabel.textContent = 'Aguarde...'; // Reset o feedback ao sair
+            feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold';
         }
     </script>
 </body>
