@@ -5,13 +5,13 @@
 
 void setup() {
   // Inicia o Monitor Serial (comunicação com o PC)
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("Mega pronto para receber via Bluetooth...");
   Serial.println("Aguardando conexão do ESP32...");
 
   // Inicia a Serial1 (comunicação com o HC-05)
   // Certifique-se que o baud rate (9600) é o mesmo do seu HC-05
-  Serial1.begin(9600);
+  Serial1.begin(115200);
 }
 
 void loop() {
