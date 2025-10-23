@@ -1,22 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <!-- =================================================================================
-    BLOCO 1: <HEAD> - CONFIGURAÇÕES E ESTILOS
-    ================================================================================== -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SRGL - Aprenda Libras</title>
     
-    <!-- Carregando o framework Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Carregando a fonte 'Inter' do Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
     
-    <!-- Estilos CSS customizados -->
     <style>
         /* Define a fonte 'Inter' como padrão para todo o corpo */
         body { font-family: 'Inter', sans-serif; }
@@ -42,31 +36,17 @@
 </head>
 <body class="bg-gray-200 flex items-center justify-center min-h-screen">
 
-    <!-- =================================================================================
-    BLOCO 2: <BODY> - ESTRUTURA HTML DAS TELAS
-    ================================================================================== -->
-
-    <!-- Container principal que simula a tela de um app (limita a largura) -->
     <div class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-        <!-- Define uma altura fixa para a "tela" do app -->
         <div class="h-[700px] flex flex-col">
 
-            <!-- 
-            -----------------------------------------------------------------
-            TELA 1: Início (Home)
-            Visível por padrão, escondida pelo JS quando outra tela é mostrada.
-            -----------------------------------------------------------------
-            -->
             <div id="screenHome" class="flex flex-col h-full p-8 text-center main-gradient text-white">
                 <div class="flex-1 flex flex-col items-center justify-center">
-                    <!-- Ícone da Luva -->
                     <div class="bg-white/20 p-4 rounded-full mb-6 backdrop-blur-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M12 10v4"/><path d="M12 18.5a2.5 2.5 0 0 1-5 0V16a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 1-5 0V16"/><path d="M12 14h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 5 0V16a2 2 0 0 0-2-2h-1"/></svg>
                     </div>
                     <h1 class="text-5xl font-extrabold mb-2">SRGL</h1>
-                    <p class="text-indigo-200 mb-12 max-w-xs mx-auto">Sua jornada para aprender Libras começa aqui.</p>
+                    <p class="text-indigo-200 mb-8 max-w-xs mx-auto">Sua jornada para aprender Libras começa aqui.</p>
                     
-                    <!-- Botões de Navegação -->
                     <div class="w-full flex flex-col space-y-4">
                         <button onclick="showScreen('screenTraducao')" class="w-full bg-white text-indigo-600 font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
                             Modo Tradução
@@ -76,55 +56,41 @@
                         </button>
                     </div>
                 </div>
-                <div class="text-xs text-indigo-300 mt-6">Projeto Integrador V</div>
+
+                <div class="mt-8 w-full">
+                    <div class="flex gap-2">
+                        <input type="text" id="espIpInput" placeholder="IP do ESP32" class="w-full px-4 py-3 border border-indigo-300 bg-white/20 text-white placeholder-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-white">
+                        <button id="connectButton" onclick="toggleConnection()" class="px-5 py-3 btn-primary font-semibold rounded-xl shadow-md">Conectar</button>
+                    </div>
+                    <p id="statusConexao" class="text-indigo-200 text-sm mt-3">Status: Desconectado</p>
+                </div>
+                
+                <div class="text-xs text-indigo-300 mt-4">Projeto Integrador V</div>
             </div>
 
-            <!-- 
-            -----------------------------------------------------------------
-            TELA 2: Seleção de Lição
-            Escondida por padrão (classe 'hidden').
-            -----------------------------------------------------------------
-            -->
             <div id="screenSelecaoLicao" class="hidden flex-col h-full p-6 bg-gray-50">
-                <!-- Cabeçalho com botão de voltar -->
                 <div class="flex items-center mb-6">
                     <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
                     <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Lições</h2>
                 </div>
                 <p class="text-center text-gray-600 mb-6">Escolha uma categoria para começar a praticar.</p>
                 
-                <!-- Container onde o JS vai injetar os cartões das lições -->
                 <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2">
-                    <!-- Os cartões são gerados pelo JS (função gerarCartoesLicao) -->
                 </div>
             </div>
 
-            <!-- 
-            -----------------------------------------------------------------
-            TELA 3: Modo Tradução (Conexão com ESP)
-            Escondida por padrão (classe 'hidden').
-            -----------------------------------------------------------------
-            -->
             <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
-                 <!-- Cabeçalho com botão de voltar -->
-                 <div class="flex items-center mb-4">
+                <div class="flex items-center mb-4">
                     <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
                     <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Tradução</h2>
                 </div>
                 
-                <!-- Input do IP e Botão Conectar -->
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="espIpInput" placeholder="IP do ESP32" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <button id="connectButton" onclick="toggleConnection()" class="px-5 py-3 btn-primary font-semibold rounded-xl shadow-md">Conectar</button>
-                </div>
                 
-                <!-- Display principal (Status e Gesto "ao vivo") -->
                 <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6">
                     <p id="statusTraducao" class="text-lg text-gray-500 font-semibold mb-4">Status: Desconectado</p>
                     <div id="gestoExibido" class="text-9xl font-extrabold text-indigo-600">-</div>
                 </div>
                 
-                <!-- Display da palavra formada -->
                 <div class="mt-4 p-4 bg-gray-100 rounded-xl">
                     <div class="flex items-center mb-1">
                         <p class="text-sm text-gray-600 font-medium">Palavra formada:</p>
@@ -134,55 +100,40 @@
                 </div>
             </div>
 
-            <!-- 
-            -----------------------------------------------------------------
-            TELA 4: Modo Aprendizagem (Desafio)
-            Escondida por padrão (classe 'hidden').
-            -----------------------------------------------------------------
-            -->
             <div id="screenAprendizagem" class="hidden flex-col h-full p-6 bg-gray-50">
-                <!-- Cabeçalho com botão de voltar e título da lição -->
                 <div class="flex items-center mb-4">
                     <button onclick="showScreen('screenSelecaoLicao')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</sapan>
                     <h2 id="categoriaTitulo" class="flex-1 text-center text-2xl font-bold text-gray-800">Aprendendo</h2>
                 </div>
                 
-                <!-- Display da Palavra Desafio (com letras coloridas) -->
                 <div class="text-center mb-4 p-4 rounded-xl bg-indigo-100">
                     <p class="font-semibold text-indigo-800">Soletrar a palavra:</p>
-                    <div id="palavraDesafioContainer" class="text-3xl font-bold text-indigo-600 tracking-widest mt-1">PALAVRA</div>
+                    <div id="palavraDesafioContainer" class="text-3xl font-bold text-indigo-600 tracking-widest mt-1"></div> 
                 </div>
                 
-                <!-- Display da Letra Alvo e Feedback -->
                 <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6 space-y-2">
                     <p class="text-gray-500 text-lg">Faça o gesto para a letra:</p>
                     <div id="letraDesafioLabel" class="text-9xl font-extrabold text-teal-500">?</div>
-                    <!-- O feedback muda de cor (CSS) conforme o status (aguardando, certo, errado) -->
                     <div id="feedbackLabel" class="w-full p-3 rounded-lg text-center font-semibold">Aguarde...</div>
                 </div>
                 
-                 <!-- Botão para avançar (escondido até a palavra ser completada) -->
-                 <div class="mt-4">
+                <div class="mt-4">
                     <button id="proximaPalavraBtn" onclick="avancarLicao()" class="hidden w-full btn-primary font-bold py-4 px-6 rounded-xl shadow-lg">Próxima Palavra</button>
                 </div>
             </div>
 
-        </div> <!-- Fim do container de altura fixa [h-700px] -->
-    </div> <!-- Fim do container do app (max-w-sm) -->
-
-    <!-- =================================================================================
-    BLOCO 3: JAVASCRIPT - LÓGICA DA APLICAÇÃO
-    ================================================================================== -->
+        </div>
+    </div>
+    
     <script>
         // =================================================================================
         // BLOCO 3.1: ESTRUTURA DE DADOS DAS LIÇÕES
         // =================================================================================
-        // Define o conteúdo de todas as lições (categorias, ícones, palavras, cores)
         const licoes = [
             {
                 categoria: "Cores",
                 icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.34 0 .67-.02 1-.05M12 2c5.52 0 10 4.48 10 10 0 .34-.02.67-.05 1M6.4 17.6A8 8 0 0 0 17.6 6.4"/></svg>`,
-                palavras: ["AZUL", "VERDE", "SOL"], // Adicionei 'SOL' como exemplo, já que estava na estrutura
+                palavras: ["AZUL", "VERDE", "SOL"], // Palavras em maiúsculas para facilitar a comparação
                 cor: "bg-blue-500"
             },
             {
@@ -205,50 +156,49 @@
         
         // Referência a todas as telas para a função showScreen
         const allScreens = ['screenHome', 'screenSelecaoLicao', 'screenTraducao', 'screenAprendizagem'];
-        const ipInput = document.getElementById('espIpInput');
+        const ipInput = document.getElementById('espIpInput'); // Agora na Tela 1
         
-        // Elementos DOM e variáveis de estado para o Modo Tradução
-        const statusLabelTraducao = document.getElementById('statusTraducao');
-        const gestoLabel = document.getElementById('gestoExibido');
+        // --- Elementos de Conexão (Tela 1) ---
         const connectButton = document.getElementById('connectButton');
+        const statusConexao = document.getElementById('statusConexao'); // Novo label de status
+        
+        // --- Elementos Modo Tradução (Tela 3) ---
+        const statusLabelTraducao = document.getElementById('statusTraducao'); // Label de status local
+        const gestoLabel = document.getElementById('gestoExibido');
         const palavraLabel = document.getElementById('palavraFormada');
-        let isConnected = false;        // Controla o estado da conexão
-        let traducaoTimer = null;       // Armazena o timer (setInterval) do fetch "ao vivo"
-        let palavraTimer = null;        // Armazena o timer (setInterval) de concatenar a palavra
-        let palavraAtualTraducao = "-"; // Armazena a palavra sendo formada
-
-        // Elementos DOM e variáveis de estado para o Modo Aprendizagem
+        
+        // --- Elementos Modo Aprendizagem (Tela 2 e 4) ---
         const licoesContainer = document.getElementById('licoesContainer');
         const categoriaTitulo = document.getElementById('categoriaTitulo');
         const palavraDesafioContainer = document.getElementById('palavraDesafioContainer');
         const letraDesafioLabel = document.getElementById('letraDesafioLabel');
         const feedbackLabel = document.getElementById('feedbackLabel');
         const proximaPalavraBtn = document.getElementById('proximaPalavraBtn');
-        // Objeto que rastreia o progresso atual do usuário na lição
-        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 };
-        let aprendizagemTimer = null;   // Armazena o timer (setInterval) do fetch de aprendizagem
-        let acertouLetraAtual = false;  // Trava a verificação de gestos após um acerto
+        
+        // --- Variáveis de Estado Global ---
+        let isConnected = false;             // Controla o estado da conexão (Master Switch)
+        let currentScreen = 'screenHome';    // Rastreia a tela atual
+        let traducaoTimer = null;            // Timer para fetch "ao vivo" (Tradução)
+        let palavraTimer = null;             // Timer para concatenar palavra (Tradução)
+        let aprendizagemTimer = null;        // Timer para fetch (Aprendizagem)
+        let homeConnectionTimer = null;      // NOVO: Timer para verificar conexão na tela Home
+        let palavraAtualTraducao = "-";      // Palavra do Modo Tradução
+        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 }; // Progresso da lição
+        let acertouLetraAtual = false;       // Trava do Modo Aprendizagem
 
         // =================================================================================
         // BLOCO 3.3: INICIALIZAÇÃO DA APLICAÇÃO
         // =================================================================================
         
-        // Roda assim que a página (DOM) estiver totalmente carregada
         window.onload = () => {
-            // Tenta carregar um IP salvo anteriormente no localStorage
             const savedIp = localStorage.getItem('espIpAddress');
             if (savedIp) ipInput.value = savedIp;
-            
-            // Gera os cartões das lições dinamicamente
             gerarCartoesLicao();
         };
 
-        // Função para criar os cartões de lição na TELA 2
         function gerarCartoesLicao() {
-            licoesContainer.innerHTML = ''; // Limpa o container
-            // Itera sobre a estrutura de dados 'licoes'
+            licoesContainer.innerHTML = '';
             licoes.forEach((licao, index) => {
-                // Adiciona o HTML de cada cartão
                 licoesContainer.innerHTML += `
                     <div onclick="iniciarLicao(${index})" class="card-hover flex items-center p-5 rounded-2xl shadow-sm cursor-pointer text-white ${licao.cor}">
                         <div class="mr-4">${licao.icone}</div>
@@ -266,93 +216,157 @@
         // BLOCO 3.4: NAVEGAÇÃO E CONTROLE GERAL
         // =================================================================================
         
-        // Função central para gerenciar a troca de telas
+        /**
+         * Gerenciador central de telas e timers.
+         * Garante que os timers (fetch) só rodem quando a tela correspondente
+         * estiver visível, preservando a conexão (isConnected) entre as telas.
+         */
         function showScreen(screenId) {
-            // --- LIMPEZA ---
-            // Antes de trocar de tela, encerra qualquer processo (timer) que esteja rodando
-            if (isConnected) toggleConnection(); // Desconecta o Modo Tradução se estiver ativo
-            if (aprendizagemTimer) encerrarLicao(); // Encerra o Modo Aprendizagem se estiver ativo
+            // --- LIMPEZA (Parar timers da tela que estamos SAINDO) ---
+            if (currentScreen === 'screenTraducao') {
+                clearInterval(traducaoTimer);
+                clearInterval(palavraTimer);
+                traducaoTimer = null;
+                palavraTimer = null;
+            }
+            if (currentScreen === 'screenAprendizagem') {
+                clearInterval(aprendizagemTimer);
+                aprendizagemTimer = null;
+            }
+            // Limpar o timer da Home ao SAIR da Home
+            if (currentScreen === 'screenHome') {
+                clearInterval(homeConnectionTimer);
+                homeConnectionTimer = null;
+            }
 
             // --- NAVEGAÇÃO ---
-            // Esconde todas as telas...
             allScreens.forEach(id => document.getElementById(id).classList.add('hidden'));
-            // ...e mostra apenas a tela solicitada
             document.getElementById(screenId).classList.remove('hidden');
+            currentScreen = screenId; // Atualiza o rastreador da tela atual
+
+            // --- INICIALIZAÇÃO (Iniciar timers da tela que estamos ENTRANDO) ---
             
-            // --- RESET DE ESTADO (Tradução) ---
-            // Se estou indo para a tela de Tradução, garanto que ela esteja no estado inicial
-            if (screenId === 'screenTraducao' && ipInput.value.trim() !== '') {
-                connectButton.textContent = 'Conectar';
-                connectButton.classList.remove('bg-red-500'); // Remove a cor 'vermelha' (de parar)
-                statusLabelTraducao.textContent = 'Status: Desconectado';
-                isConnected = false; // Garante que o estado lógico seja 'desconectado'
+            // Se for para a tela de Tradução
+            if (screenId === 'screenTraducao') {
+                if (isConnected) {
+                    traducaoTimer = setInterval(fetchGestoTraducao, 1200);
+                    palavraTimer = setInterval(concatenarLetra, 4000);
+                    fetchGestoTraducao(); // Chama imediatamente para um feedback rápido
+                    statusLabelTraducao.textContent = 'Status: Conectando...'; // Estado inicial ao entrar na tela
+                } else {
+                    statusLabelTraducao.textContent = 'Status: Desconectado. Conecte-se na tela inicial.';
+                    gestoLabel.textContent = '-';
+                    palavraLabel.textContent = '-';
+                    palavraAtualTraducao = '-';
+                }
+            }
+            // Se for para a tela de Seleção de Lição
+            else if (screenId === 'screenSelecaoLicao') {
+                if (!isConnected) {
+                    alert("Por favor, conecte-se a um IP na tela inicial para usar o modo Aprendizagem.");
+                }
+            }
+            // Se for para a tela de Aprendizagem, a função iniciarLicao já cuidará do timer
+            else if (screenId === 'screenAprendizagem') {
+                if (!isConnected) {
+                    alert("Por favor, conecte-se a um IP na tela inicial para usar o modo Aprendizagem.");
+                }
+            }
+            // Se for para a tela Home, e já estiver conectado, inicie o timer da home
+            else if (screenId === 'screenHome') {
+                if (isConnected) {
+                    homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000); // Verifica a cada 2s
+                    checkHomeConnectionStatus(); // Chama imediatamente
+                }
             }
         }
         
         // =================================================================================
-        // BLOCO 3.5: MODO TRADUÇÃO
+        // BLOCO 3.5: MODO TRADUÇÃO E CONEXÃO
         // =================================================================================
         
-        // Controla o botão "Conectar/Parar"
+        /**
+         * Controla o botão "Conectar/Parar" (Master Switch).
+         * Agora, inicia/para um timer para o status da conexão na própria Home.
+         */
         function toggleConnection() {
             if (isConnected) { 
                 // --- AÇÃO: DESCONECTAR ---
-                clearInterval(traducaoTimer);   // Para o timer que busca o gesto "ao vivo"
-                clearInterval(palavraTimer);    // Para o timer que forma a palavra
-                traducaoTimer = null;  
-                palavraTimer = null; 
                 isConnected = false;
-                ipInput.disabled = false; // Libera o campo de IP
-                
-                // Reseta a UI do botão e status
+                ipInput.disabled = false;
                 connectButton.textContent = 'Conectar';
                 connectButton.classList.remove('bg-red-500');
-                statusLabelTraducao.textContent = 'Status: Desconectado';
+                statusConexao.textContent = 'Status: Desconectado';
+                
+                // Força a parada de todos os timers (segurança)
+                clearInterval(traducaoTimer); traducaoTimer = null;
+                clearInterval(palavraTimer); palavraTimer = null;
+                clearInterval(aprendizagemTimer); aprendizagemTimer = null;
+                clearInterval(homeConnectionTimer); homeConnectionTimer = null; // Zera o timer da Home também
                 
             } else { 
                 // --- AÇÃO: CONECTAR ---
                 const ip = ipInput.value.trim();
                 if (!ip) { alert("Por favor, insira um endereço de IP."); return; }
-                localStorage.setItem('espIpAddress', ip); // Salva o IP para a próxima vez
+                localStorage.setItem('espIpAddress', ip); // Salva o IP
 
                 isConnected = true;
-                ipInput.disabled = true; // Trava o campo de IP
+                ipInput.disabled = true;
                 
-                // --- LÓGICA DE DOIS TIMERS ---
-                // Timer 1: Busca o gesto "ao vivo" (feedback rápido, 1.2s)
-                traducaoTimer = setInterval(fetchGestoTraducao, 1200); 
-                // Timer 2: Captura a letra para a palavra (feedback lento, 4s)
-                palavraTimer = setInterval(concatenarLetra, 4000);
-
-                // Atualiza a UI do botão e status
+                // Atualiza a UI da Home
                 connectButton.textContent = 'Parar';
-                connectButton.classList.add('bg-red-500'); // Botão fica vermelho
-                statusLabelTraducao.textContent = 'Status: Conectando...';
+                connectButton.classList.add('bg-red-500');
+                statusConexao.textContent = 'Status: Conectando...'; // Feedback imediato
                 
-                fetchGestoTraducao(); // Chama a função imediatamente na primeira vez
+                // Inicia o timer para verificar a conexão na tela Home
+                clearInterval(homeConnectionTimer); // Limpa qualquer timer antigo
+                homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000); // Verifica a cada 2s
+                checkHomeConnectionStatus(); // Chama a função imediatamente para ter um feedback rápido
             }
         }
 
-        // Função chamada pelo Timer 1 (a cada 1.2s)
-        async function fetchGestoTraducao() {
+        // NOVA FUNÇÃO: Verifica a conexão especificamente para a tela Home
+        async function checkHomeConnectionStatus() {
+            if (!isConnected) { // Se por algum motivo isConnected se tornou false, para o timer
+                clearInterval(homeConnectionTimer);
+                homeConnectionTimer = null;
+                statusConexao.textContent = 'Status: Desconectado';
+                connectButton.textContent = 'Conectar';
+                connectButton.classList.remove('bg-red-500');
+                ipInput.disabled = false;
+                return;
+            }
             try {
-                // Faz a requisição HTTP GET para o ESP32
+                const response = await fetch(`http://${ipInput.value}/gesto`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                await response.text(); // Apenas lê a resposta para garantir que a conexão foi bem-sucedida
+                statusConexao.textContent = 'Status: Conectado';
+            } catch (error) {
+                console.error("Falha na comunicação (Home):", error);
+                statusConexao.textContent = 'Status: Erro de Conexão. Tentando novamente...';
+            }
+        }
+
+        // Função chamada pelo Timer 1 (a cada 1.2s) - MODO TRADUÇÃO
+        async function fetchGestoTraducao() {
+            if (!isConnected) {
+                statusLabelTraducao.textContent = 'Status: Desconectado.';
+                gestoLabel.textContent = '!';
+                return;
+            }
+            try {
                 const response = await fetch(`http://${ipInput.value}/gesto`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const letra = await response.text();
                 
-                // Se deu certo, atualiza o status e o gesto "ao vivo"
-                statusLabelTraducao.textContent = 'Status: Conectado';
+                statusLabelTraducao.textContent = 'Status: Conectado'; // Garante que o status local esteja certo
                 gestoLabel.textContent = letra; // Mostra a letra (A, B, C, ou ?)
 
-                // A lógica de formar a palavra foi movida para 'concatenarLetra'
-                
             } catch (error) {
-                // Se falhar a comunicação
                 console.error("Falha na comunicação (Tradução):", error);
-                statusLabelTraducao.textContent = 'Status: Erro de Conexão. Tentando novamente...';
+                statusLabelTraducao.textContent = 'Status: Erro de Conexão. Tentando...';
                 gestoLabel.textContent = '!'; // Mostra '!' para indicar erro
-                // O timer continua rodando, tentando reconectar automaticamente
+                // O timer continua tentando reconectar...
             }
         }
 
@@ -362,50 +376,48 @@
             palavraLabel.textContent = palavraAtualTraducao;
         }
 
-        // Função chamada pelo Timer 2 (a cada 4s)
+        // Função chamada pelo Timer 2 (a cada 4s) - MODO TRADUÇÃO
         function concatenarLetra() {
-            // Pega a letra que o 'fetchGestoTraducao' (Timer 1) deixou visível
             const letra = gestoLabel.textContent;
+            if (letra === '-' || letra === '!' || letra === '?') return; // Ignora símbolos de status
 
-            // Não adiciona à palavra se for um símbolo de status (erro, desconectado, ou '?')
-            if (letra === '-' || letra === '!' || letra === '?') {
-                return;
-            }
-
-            // Se for a primeira letra, substitui o '-'
             if (palavraAtualTraducao === "-") {
                 palavraAtualTraducao = letra;
             } else {
-                // Senão, concatena
                 palavraAtualTraducao += letra;
             }
             palavraLabel.textContent = palavraAtualTraducao;
         }
 
         // =================================================================================
-        // BLOCO 3.6: MODO APRENDIZAGEM
+        // BLOCO 3.6: MODO APRENDIZAGEM (LÓGICA CORRIGIDA)
         // =================================================================================
         
         // Chamada ao clicar em um cartão de lição
-        function iniciarLicao(catIndex) {
-            // Verifica se o IP está configurado (obrigatório para este modo)
-            const ip = ipInput.value.trim();
-            if (!ip) {
-                alert("Por favor, insira um IP na tela de Tradução antes de iniciar uma lição.");
-                return;
+        function iniciarLicao(catIndex, retomando = false) {
+            if (!isConnected) {
+                alert("Você precisa conectar-se ao ESP32 na tela inicial antes de iniciar uma lição.");
+                showScreen('screenHome');
+                return; // Impede que a lição comece se não estiver conectado
             }
 
-            // Define o estado inicial da lição
-            licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
-            categoriaTitulo.textContent = licoes[catIndex].categoria; // Atualiza o título
-            proximaPalavraBtn.classList.add('hidden'); // Esconde o botão de avançar
-            
-            showScreen('screenAprendizagem'); // Vai para a tela de aprendizagem
+            // Se não estivermos retomando (ou seja, clicamos no cartão), resetamos o progresso
+            if (!retomando) {
+                licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
+            }
 
-            // Prepara a UI para o primeiro desafio
+            categoriaTitulo.textContent = licoes[licaoAtual.catIndex].categoria;
+            proximaPalavraBtn.classList.add('hidden');
+            
+            // Se estamos vindo da tela de seleção, troca a tela
+            if (!retomando) {
+                showScreen('screenAprendizagem');
+            }
+
             apresentarDesafio();
 
-            // Inicia o loop (timer) para verificar o gesto do usuário
+            // Inicia o loop (timer) de verificação
+            clearInterval(aprendizagemTimer); // Limpa timer antigo (segurança)
             aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
         }
 
@@ -413,53 +425,46 @@
         function apresentarDesafio() {
             acertouLetraAtual = false; // Reseta a trava de acerto
             const { catIndex, palavraIndex, letraIndex } = licaoAtual;
-            const palavra = licoes[catIndex].palavras[palavraIndex];
-            const letra = palavra[letraIndex]; // Letra que o usuário deve fazer
+            const palavra = licoes[catIndex].palavras[palavraIndex]; 
+            const letra = palavra[letraIndex];
 
-            // --- Lógica para colorir as letras da palavra desafio ---
-            // Mapeia a palavra: letras antes do índice atual ficam verdes (teal),
-            // o restante fica cinza.
+            // --- MUDANÇA AQUI: Renderiza a palavra dinamicamente, destacando a letra atual ---
             palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
                 `<span class="${index < letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
             ).join('');
-            // --------------------------------------------------------
 
-            letraDesafioLabel.textContent = letra; // Mostra a letra alvo
-            
-            // Reseta o feedback para "Aguardando" (cor amarela)
+            letraDesafioLabel.textContent = letra;
             feedbackLabel.textContent = 'Aguardando seu gesto...';
             feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
         }
 
         // Função chamada pelo Timer de Aprendizagem (a cada 1.2s)
         async function fetchGestoAprendizagem() {
-            // Se o usuário acabou de acertar, 'acertouLetraAtual' será true.
-            // Isso pausa a verificação para ele ter tempo de ler o feedback "Correto!".
             if (acertouLetraAtual) return; 
+            if (!isConnected) {
+                feedbackLabel.textContent = 'Desconectado. Reconecte na tela inicial.';
+                feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
+                return;
+            }
 
             try {
-                // Faz a requisição HTTP GET para o ESP32
                 const response = await fetch(`http://${ipInput.value}/gesto`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const letraRecebida = await response.text();
                 
-                // Se a requisição foi bem-sucedida (após um erro, por exemplo),
-                // reseta o status para "Aguardando..."
                 if (feedbackLabel.textContent.includes('Erro de Conexão')) {
                     feedbackLabel.textContent = 'Aguardando seu gesto...';
                     feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
                 }
 
-                // Só verifica o gesto se não for '?'
                 if (letraRecebida !== '?') {
                     verificarGesto(letraRecebida);
                 }
             } catch (error) {
                 console.error("Falha na comunicação (Aprendizagem):", error);
-                // Se falhar a conexão, avisa na UI (cor vermelha)
                 feedbackLabel.textContent = 'Erro de Conexão. Verifique o IP ou a luva.';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
-                // O timer continua ativo, tentando reconectar/fetch a cada 1.2s
+                // O timer continua ativo, tentando reconectar
             }
         }
 
@@ -471,70 +476,57 @@
 
             if (letraRecebida === letraCorreta) {
                 // --- ACERTOU ---
-                acertouLetraAtual = true; // Trava o 'fetchGestoAprendizagem'
+                acertouLetraAtual = true; 
                 feedbackLabel.textContent = 'Correto!';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-green-800 bg-green-100';
-                licaoAtual.letraIndex++; // Avança para a próxima letra
+                licaoAtual.letraIndex++; 
 
-                // Atualiza a palavra desafio (colore a letra que acabou de acertar)
+                // --- MUDANÇA AQUI: Atualiza a palavra em tempo real com a letra que o usuário acertou ---
                 palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
                     `<span class="${index < licaoAtual.letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
                 ).join('');
 
-                // Espera 1 segundo (1000ms) antes de avançar
                 setTimeout(() => {
                     if (licaoAtual.letraIndex >= palavra.length) { 
                         // --- PALAVRA COMPLETA ---
                         feedbackLabel.textContent = 'Palavra completa!';
-                        proximaPalavraBtn.classList.remove('hidden'); // Mostra o botão "Próxima Palavra"
-                        clearInterval(aprendizagemTimer); // PAUSA o timer de verificação
+                        proximaPalavraBtn.classList.remove('hidden'); 
+                        clearInterval(aprendizagemTimer); // PAUSA o timer
                         aprendizagemTimer = null; 
                     } else { 
                         // --- PRÓXIMA LETRA ---
-                        apresentarDesafio(); // Prepara a UI para a próxima letra
-                        // 'acertouLetraAtual' foi resetado para 'false' dentro de 'apresentarDesafio'
+                        apresentarDesafio();
                     }
                 }, 1000); // Delay de 1s para o usuário ver o feedback "Correto!"
-                
+
             } else {
                 // --- ERROU ---
                 feedbackLabel.textContent = `Incorreto. Tente a letra "${letraCorreta}" novamente.`;
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
-                // O loop continua, pois 'acertouLetraAtual' ainda é 'false'
             }
         }
 
         // Chamado pelo botão "Próxima Palavra"
         function avancarLicao() {
-            proximaPalavraBtn.classList.add('hidden'); // Esconde o botão
-            licaoAtual.palavraIndex++; // Avança para a próxima palavra
-            licaoAtual.letraIndex = 0; // Reseta o contador de letras
-            
+            proximaPalavraBtn.classList.add('hidden');
+            licaoAtual.palavraIndex++;
+            licaoAtual.letraIndex = 0;
+
             const { catIndex, palavraIndex } = licaoAtual;
-            
-            // Verifica se a lição terminou
-            if (palavraIndex >= licoes[catIndex].palavras.length) { 
+
+            if (palavraIndex >= licoes[catIndex].palavras.length) {
                 // --- LIÇÃO COMPLETA ---
                 showScreen('screenSelecaoLicao'); // Volta para a tela de seleção
                 alert('Parabéns! Você completou esta lição!');
             } else {
                 // --- PRÓXIMA PALAVRA ---
-                apresentarDesafio(); // Prepara a UI para a nova palavra
-                
-                // Reinicia o timer (que foi parado em 'verificarGesto' quando a palavra terminou)
+                apresentarDesafio();
+
+                // Reinicia o timer (que foi parado em 'verificarGesto')
                 if (!aprendizagemTimer) {
                     aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
                 }
             }
-        }
-
-        // Função de limpeza, chamada pelo 'showScreen' ao sair da tela de aprendizagem
-        function encerrarLicao() {
-            clearInterval(aprendizagemTimer);
-            aprendizagemTimer = null; // Garante que o timer seja limpo
-            // Reseta o feedback (para não mostrar "Erro" se eu sair da tela)
-            feedbackLabel.textContent = 'Aguarde...'; 
-            feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold';
         }
     </script>
 </body>
