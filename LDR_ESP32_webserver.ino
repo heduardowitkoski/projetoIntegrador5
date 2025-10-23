@@ -1,4 +1,4 @@
-/*
+[/*
 ==================================================================================
 BLOCO DE DESCRIÇÃO
 ==================================================================================
@@ -62,32 +62,34 @@ struct ChaveValor {
 //
 // É preciso ajustar os padrões (as 'chaves') para serem únicos para cada letra.
 ChaveValor Alfabeto[26] = {
-  {{0, 0, 0, 0, 1}, 'A'}, // Dedo 5 (polegar?) coberto, outros expostos
-  {{1, 1, 1, 1, 0}, 'B'}, // Dedos 1-4 cobertos, dedo 5 exposto
-  {{0, 0, 0, 0, 0}, 'C'}, // Mão aberta (todos expostos à luz)
+// Ordem -> {mindinho, anelar, médio, indicador, polegar}
+//          {dedo 1, dedo2, dedo3, dedo4, dedo 5}
+  {{0, 0, 0, 0, 1}, 'A'}, 
+  {{1, 1, 1, 1, 0}, 'B'}, 
+  {{1, 1, 1, 1, 1}, 'C'}, 
   {{0, 0, 0, 1, 0}, 'D'},
-  {{0, 0, 0, 0, 0}, 'E'}, // Duplicata de 'C'
-  {{1, 1, 1, 0, 1}, 'F'},
-  {{0, 0, 0, 1, 0}, 'G'}, // Duplicata de 'D'
+  //{{1, 1, 1, 1, 1}, 'E'}, // Duplicata de 'C'
+  {{1, 1, 1, 0, 0}, 'F'},
+  //{{0, 0, 0, 1, 0}, 'G'}, // Duplicata de 'D'
   {{0, 0, 1, 1, 0}, 'H'},
   {{1, 0, 0, 0, 0}, 'I'},
-  {{1, 0, 0, 0, 0}, 'J'}, // Duplicata de 'I'
+  //{{1, 0, 0, 0, 0}, 'J'}, // Duplicata de 'I'
   {{0, 0, 1, 1, 1}, 'K'},
   {{0, 0, 0, 1, 1}, 'L'},
   {{0, 1, 1, 1, 0}, 'M'},
-  {{0, 0, 1, 1, 0}, 'N'}, // Duplicata de 'H'
-  {{0, 0, 0, 0, 0}, 'O'}, // Duplicata de 'C'
-  {{0, 0, 1, 1, 1}, 'P'}, // Duplicata de 'K'
-  {{0, 0, 0, 1, 1}, 'Q'},
-  {{0, 0, 1, 1, 0}, 'R'}, // Duplicata de 'H'
-  {{0, 0, 0, 0, 0}, 'S'}, // Duplicata de 'C'
-  {{1, 1, 1, 0, 0}, 'T'},
-  {{0, 0, 1, 1, 0}, 'U'}, // Duplicata de 'H'
-  {{0, 0, 1, 1, 0}, 'V'}, // Duplicata de 'H'
+  //{{0, 0, 1, 1, 0}, 'N'}, // Duplicata de 'H'
+  //{{0, 0, 0, 0, 0}, 'O'}, // Duplicata de 'C'
+  //{{0, 0, 1, 1, 1}, 'P'}, // Duplicata de 'K'
+  //{{0, 0, 0, 1, 0}, 'Q'}, D
+  //{{0, 0, 1, 1, 0}, 'R'}, // Duplicata de 'H'
+  //{{0, 0, 0, 0, 0}, 'S'}, // Duplicata de 'C'
+ // {{1, 1, 1, 0, 0}, 'T'}, F
+ //{{0, 0, 1, 1, 0}, 'U'}, // Duplicata de 'H'
+ //{{0, 0, 1, 1, 0}, 'V'}, // Duplicata de 'H'
   {{0, 1, 1, 1, 0}, 'W'}, // Duplicata de 'M'
-  {{0, 0, 0, 1, 0}, 'X'}, // Duplicata de 'D'
+//{{0, 0, 0, 1, 0}, 'X'}, // Duplicata de 'D'
   {{1, 0, 0, 0, 1}, 'Y'},
-  {{0, 0, 0, 1, 0}, 'Z'}  // Duplicata de 'D'
+//{{0, 0, 0, 1, 0}, 'Z'}  // Duplicata de 'D'
 };
 
 // ==================================================================================
