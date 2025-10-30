@@ -110,7 +110,7 @@
                 <p class="text-center text-gray-600 mb-6">Escolha uma categoria para começar a praticar.</p>
                 
                 <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2">
-                </div>
+                    </div>
             </div>
 
             <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
@@ -161,10 +161,10 @@
     
     <script>
         // =================================================================================
-        // BLOCO 1: INICIALIZAÇÃO DO FIREBASE (COM SUAS INFORMAÇÕES)
+        // BLOCO 1: INICIALIZAÇÃO E SERVIÇOS DO FIREBASE
         // =================================================================================
         
-        // Configuração copiada do seu console Firebase
+        // Configuração do projeto Firebase (copiada do console).
         const firebaseConfig = {
           apiKey: "AIzaSyB1qc2AyWRupxNejbj7pZ-jecl23XzAvPE",
           authDomain: "srgl-f2eab.firebaseapp.com",
@@ -174,16 +174,21 @@
           appId: "1:873645083737:web:7b68b9e0c605ea01e8b548"
         };
 
-        // Inicializa o Firebase
-        // Esta linha AGORA deve funcionar, pois os scripts do <head> já carregaram
+        // Inicializa a conexão com o Firebase.
         firebase.initializeApp(firebaseConfig);
         
-        // Referências globais dos serviços do Firebase
+        // --- PONTO CHAVE: LOGIN ---
+        // 'auth' é a referência global para o serviço de Autenticação (Login, Cadastro, Sair).
         const auth = firebase.auth();
+        
+        // --- PONTO CHAVE: BANCO DE DADOS ---
+        // 'db' é a referência global para o serviço Cloud Firestore (Banco de Dados NoSQL).
         const db = firebase.firestore();
 
-        // Referências aos elementos da nova tela de login
-        // AGORA ISSO FUNCIONA, pois o HTML já foi carregado
+        // =================================================================================
+        // BLOCO 2: REFERÊNCIAS AOS ELEMENTOS HTML (DOM)
+        // =================================================================================
+        // Busca os elementos da UI de Login.
         const loginScreen = document.getElementById('screenLogin');
         const appContainer = document.getElementById('appContainer');
         const loginEmail = document.getElementById('loginEmail');
@@ -191,14 +196,30 @@
         const loginError = document.getElementById('loginError');
         const userEmailDisplay = document.getElementById('userEmailDisplay');
 
+        // Busca os elementos da aplicação principal.
+        const allScreens = ['screenHome', 'screenSelecaoLicao', 'screenTraducao', 'screenAprendizagem', 'screenLogin'];
+        const ipInput = document.getElementById('espIpInput');
+        const connectButton = document.getElementById('connectButton');
+        const statusConexao = document.getElementById('statusConexao');
+        const statusLabelTraducao = document.getElementById('statusTraducao');
+        const gestoLabel = document.getElementById('gestoExibido');
+        const palavraLabel = document.getElementById('palavraFormada');
+        const licoesContainer = document.getElementById('licoesContainer');
+        const categoriaTitulo = document.getElementById('categoriaTitulo');
+        const palavraDesafioContainer = document.getElementById('palavraDesafioContainer');
+        const letraDesafioLabel = document.getElementById('letraDesafioLabel');
+        const feedbackLabel = document.getElementById('feedbackLabel');
+        const proximaPalavraBtn = document.getElementById('proximaPalavraBtn');
+        
         // =================================================================================
-        // BLOCO 3.1: ESTRUTURA DE DADOS DAS LIÇÕES (Seu código original)
+        // BLOCO 3: ESTRUTURA DE DADOS (LIÇÕES)
         // =================================================================================
+        // Define o conteúdo (palavras, ícones) de cada lição.
         const licoes = [
             {
                 categoria: "Cores",
                 icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.34 0 .67-.02 1-.05M12 2c5.52 0 10 4.48 10 10 0 .34-.02.67-.05 1M6.4 17.6A8 8 0 0 0 17.6 6.4"/></svg>`,
-                palavras: ["AZUL", "VERDE", "SOL"], // Palavras em maiúsculas para facilitar a comparação
+                palavras: ["AZUL", "VERDE", "SOL"],
                 cor: "bg-blue-500"
             },
             {
@@ -216,90 +237,76 @@
         ];
         
         // =================================================================================
-        // BLOCO 3.2: VARIÁVEIS GLOBAIS E ELEMENTOS DOM (Modificado)
+        // BLOCO 4: VARIÁVEIS DE ESTADO GLOBAL
         // =================================================================================
-        
-        const allScreens = ['screenHome', 'screenSelecaoLicao', 'screenTraducao', 'screenAprendizagem', 'screenLogin'];
-        const ipInput = document.getElementById('espIpInput'); // Agora na Tela 1
-        
-        // --- Elementos de Conexão (Tela 1) ---
-        const connectButton = document.getElementById('connectButton');
-        const statusConexao = document.getElementById('statusConexao'); // Novo label de status
-        
-        // --- Elementos Modo Tradução (Tela 3) ---
-        const statusLabelTraducao = document.getElementById('statusTraducao'); // Label de status local
-        const gestoLabel = document.getElementById('gestoExibido');
-        const palavraLabel = document.getElementById('palavraFormada');
-        
-        // --- Elementos Modo Aprendizagem (Tela 2 e 4) ---
-        const licoesContainer = document.getElementById('licoesContainer');
-        const categoriaTitulo = document.getElementById('categoriaTitulo');
-        const palavraDesafioContainer = document.getElementById('palavraDesafioContainer');
-        const letraDesafioLabel = document.getElementById('letraDesafioLabel');
-        const feedbackLabel = document.getElementById('feedbackLabel');
-        const proximaPalavraBtn = document.getElementById('proximaPalavraBtn');
-        
-        // --- Variáveis de Estado Global ---
-        let isConnected = false;           // Controla o estado da conexão (Master Switch)
-        let currentScreen = 'screenLogin'; // Rastreia a tela atual (AGORA COMEÇA NO LOGIN)
-        let traducaoTimer = null;          // Timer para fetch "ao vivo" (Tradução)
-        let palavraTimer = null;           // Timer para concatenar palavra (Tradução)
-        let aprendizagemTimer = null;      // Timer para fetch (Aprendizagem)
-        let homeConnectionTimer = null;    // NOVO: Timer para verificar conexão na tela Home
-        let palavraAtualTraducao = "-";    // Palavra do Modo Tradução
-        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 }; // Progresso da lição
-        let acertouLetraAtual = false;     // Trava do Modo Aprendizagem
+        // Controlam o estado atual da aplicação.
+        let isConnected = false;           // Controla a conexão com o ESP32.
+        let currentScreen = 'screenLogin'; // Rastreia qual tela está visível.
+        let traducaoTimer = null;          // Timers para os modos de jogo, para
+        let palavraTimer = null;           // controlar as buscas (fetch)
+        let aprendizagemTimer = null;      // de dados do hardware.
+        let homeConnectionTimer = null;    
+        let palavraAtualTraducao = "-";    // String da palavra em formação no Modo Tradução.
+        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 }; // Objeto de progresso.
+        let acertouLetraAtual = false;     // Trava para o Modo Aprendizagem.
 
         // =================================================================================
-        // BLOCO 3.3: INICIALIZAÇÃO DA APLICAÇÃO (Modificado)
+        // BLOCO 5: CONTROLE DE AUTENTICAÇÃO (O "VIGIA")
         // =================================================================================
         
-        // NOVO: Observador de estado de autenticação (substitui o window.onload)
+        // --- PONTO CHAVE: LOGIN (VIGIA) ---
+        // 'auth.onAuthStateChanged' é o "vigia" principal do Firebase.
+        // Ele é disparado automaticamente quando a página carrega, quando se faz 
+        // login, ou quando se faz logout.
         auth.onAuthStateChanged(user => {
             if (user) {
-                // --- USUÁRIO ESTÁ LOGADO ---
+                // Se 'user' existir, o login foi bem-sucedido.
                 console.log("Usuário logado:", user.email);
                 
-                // Esconde a tela de login e mostra o app
+                // Esconde a tela de login e mostra o app.
                 loginScreen.classList.add('hidden');
                 appContainer.classList.remove('hidden');
                 
-                // Mostra a tela principal do app (screenHome)
+                // Navega para a tela principal do app.
                 showScreen('screenHome');
                 
-                // Exibe o e-mail do usuário no rodapé
+                // Exibe o e-mail do usuário no rodapé.
                 userEmailDisplay.textContent = user.email;
 
-                // Roda a inicialização original do seu app (gerar lições, etc.)
+                // Roda a inicialização do app (gerar lições, etc.).
                 inicializarApp();
 
             } else {
-                // --- USUÁRIO ESTÁ DESLOGADO ---
+                // Se 'user' for nulo, o usuário está deslogado.
                 console.log("Nenhum usuário logado.");
                 
-                // Esconde o app e mostra a tela de login
+                // Esconde o app e mostra a tela de login.
                 loginScreen.classList.remove('hidden');
                 appContainer.classList.add('hidden');
                 
-                // Garante que a conexão seja encerrada ao deslogar
+                // Garante que a conexão com o ESP32 seja encerrada.
                 if (isConnected) {
                     toggleConnection(); 
                 }
-                // Limpa o formulário de login
+                // Limpa o formulário de login.
                 loginPassword.value = "";
                 loginError.textContent = "";
-                currentScreen = 'screenLogin'; // Define a tela atual
+                currentScreen = 'screenLogin';
             }
         });
 
-        // NOVO: Esta função contém sua lógica ORIGINAL do window.onload
+        // =================================================================================
+        // BLOCO 6: INICIALIZAÇÃO DA APLICAÇÃO (PÓS-LOGIN)
+        // =================================================================================
+
+        // Contém a lógica que deve rodar assim que o usuário está logado.
         function inicializarApp() {
             const savedIp = localStorage.getItem('espIpAddress');
             if (savedIp) ipInput.value = savedIp;
             gerarCartoesLicao();
         };
 
-        // (Sua função gerarCartoesLicao() original)
+        // Gera os cartões de lição dinamicamente a partir do array 'licoes'.
         function gerarCartoesLicao() {
             licoesContainer.innerHTML = '';
             licoes.forEach((licao, index) => {
@@ -317,11 +324,12 @@
         }
         
         // =================================================================================
-        // BLOCO 3.4: NAVEGAÇÃO E CONTROLE GERAL (Seu código original)
+        // BLOCO 7: NAVEGAÇÃO ENTRE TELAS
         // =================================================================================
         
+        // Gerenciador central de telas e timers.
         function showScreen(screenId) {
-            // --- LIMPEZA (Parar timers da tela que estamos SAINDO) ---
+            // 1. LIMPEZA: Para todos os timers (setInterval) da tela anterior.
             if (currentScreen === 'screenTraducao') {
                 clearInterval(traducaoTimer);
                 clearInterval(palavraTimer);
@@ -337,7 +345,7 @@
                 homeConnectionTimer = null;
             }
 
-            // --- NAVEGAÇÃO ---
+            // 2. NAVEGAÇÃO: Esconde todas as telas e mostra apenas a tela desejada.
             allScreens.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden'); 
@@ -345,8 +353,7 @@
             document.getElementById(screenId).classList.remove('hidden');
             currentScreen = screenId; 
 
-            // --- INICIALIZAÇÃO (Iniciar timers da tela que estamos ENTRANDO) ---
-            
+            // 3. INICIALIZAÇÃO: Inicia os timers específicos da nova tela.
             if (screenId === 'screenTraducao') {
                 if (isConnected) {
                     traducaoTimer = setInterval(fetchGestoTraducao, 1200);
@@ -379,12 +386,13 @@
         }
         
         // =================================================================================
-        // BLOCO 3.5: MODO TRADUÇÃO E CONEXÃO (Seu código original)
+        // BLOCO 8: LÓGICA DE CONEXÃO COM O HARDWARE (ESP32)
         // =================================================================================
         
+        // Controla o botão "Conectar/Parar".
         function toggleConnection() {
             if (isConnected) { 
-                // --- AÇÃO: DESCONECTAR ---
+                // Ação de Desconectar:
                 isConnected = false;
                 ipInput.disabled = false;
                 connectButton.textContent = 'Conectar';
@@ -392,13 +400,14 @@
                 connectButton.classList.add('btn-primary'); 
                 statusConexao.textContent = 'Status: Desconectado';
                 
+                // Para todos os timers de busca de dados do hardware.
                 clearInterval(traducaoTimer); traducaoTimer = null;
                 clearInterval(palavraTimer); palavraTimer = null;
                 clearInterval(aprendizagemTimer); aprendizagemTimer = null;
                 clearInterval(homeConnectionTimer); homeConnectionTimer = null; 
                 
             } else { 
-                // --- AÇÃO: CONECTAR ---
+                // Ação de Conectar:
                 const ip = ipInput.value.trim();
                 if (!ip) { alert("Por favor, insira um endereço de IP."); return; }
                 localStorage.setItem('espIpAddress', ip); 
@@ -411,12 +420,14 @@
                 connectButton.classList.add('bg-red-500', 'hover:bg-red-600'); 
                 statusConexao.textContent = 'Status: Conectando...'; 
                 
+                // Inicia o timer de verificação de status na Home.
                 clearInterval(homeConnectionTimer); 
                 homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000); 
                 checkHomeConnectionStatus(); 
             }
         }
 
+        // Verifica periodicamente se o IP do ESP32 ainda está respondendo (na tela Home).
         async function checkHomeConnectionStatus() {
             if (!isConnected) { 
                 clearInterval(homeConnectionTimer);
@@ -429,6 +440,7 @@
                 return;
             }
             try {
+                // Tenta fazer uma requisição 'fetch' para o endpoint /gesto do ESP32.
                 const response = await fetch(`http://${ipInput.value}/gesto`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 await response.text(); 
@@ -439,6 +451,11 @@
             }
         }
 
+        // =================================================================================
+        // BLOCO 9: LÓGICA DO MODO TRADUÇÃO
+        // =================================================================================
+
+        // Busca o gesto atual do ESP32 (Modo Tradução).
         async function fetchGestoTraducao() {
             if (!isConnected) {
                 statusLabelTraducao.textContent = 'Status: Desconectado.';
@@ -460,11 +477,13 @@
             }
         }
 
+        // Limpa a palavra formada no Modo Tradução.
         function limparPalavra() {
             palavraAtualTraducao = "-";
             palavraLabel.textContent = palavraAtualTraducao;
         }
 
+        // Timer que pega a letra exibida e a adiciona à palavra.
         function concatenarLetra() {
             const letra = gestoLabel.textContent;
             if (letra === '-' || letra === '!' || letra === '?') return; 
@@ -478,9 +497,10 @@
         }
 
         // =================================================================================
-        // BLOCO 3.6: MODO APRENDIZAGEM (Seu código original)
+        // BLOCO 10: LÓGICA DO MODO APRENDIZAGEM
         // =================================================================================
         
+        // Inicia uma lição específica.
         function iniciarLicao(catIndex, retomando = false) {
             if (!isConnected) {
                 alert("Você precisa conectar-se ao ESP32 na tela inicial antes de iniciar uma lição.");
@@ -489,6 +509,7 @@
             }
 
             if (!retomando) {
+                // Reseta o progresso para o início da lição.
                 licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
             }
 
@@ -499,29 +520,35 @@
                 showScreen('screenAprendizagem');
             }
 
+            // Mostra o primeiro desafio (palavra/letra).
             apresentarDesafio();
 
+            // Inicia o timer de verificação de gestos.
             clearInterval(aprendizagemTimer); 
             aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
         }
 
+        // Atualiza a UI para mostrar o desafio atual (letra e palavra).
         function apresentarDesafio() {
-            acertouLetraAtual = false; 
+            acertouLetraAtual = false; // Reseta a trava de acerto.
             const { catIndex, palavraIndex, letraIndex } = licaoAtual;
             const palavra = licoes[catIndex].palavras[palavraIndex]; 
             const letra = palavra[letraIndex];
 
+            // Atualiza a palavra, colorindo as letras já acertadas.
             palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
                 `<span class="${index < letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
             ).join('');
 
+            // Mostra a letra-alvo.
             letraDesafioLabel.textContent = letra;
             feedbackLabel.textContent = 'Aguardando seu gesto...';
             feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
         }
 
+        // Busca o gesto atual do ESP32 (Modo Aprendizagem).
         async function fetchGestoAprendizagem() {
-            if (acertouLetraAtual) return; 
+            if (acertouLetraAtual) return; // Se já acertou, pausa a verificação.
             if (!isConnected) {
                 feedbackLabel.textContent = 'Desconectado. Reconecte na tela inicial.';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
@@ -539,6 +566,7 @@
                 }
 
                 if (letraRecebida !== '?') {
+                    // Se o gesto for válido, chama a função de verificação.
                     verificarGesto(letraRecebida);
                 }
             } catch (error) {
@@ -548,6 +576,7 @@
             }
         }
 
+        // Compara o gesto recebido com a letra correta do desafio.
         function verificarGesto(letraRecebida) {
             const { catIndex, palavraIndex, letraIndex } = licaoAtual;
             const palavra = licoes[catIndex].palavras[palavraIndex];
@@ -555,25 +584,27 @@
 
             if (letraRecebida === letraCorreta) {
                 // --- ACERTOU ---
-                acertouLetraAtual = true; 
+                acertouLetraAtual = true; // Trava a verificação.
                 feedbackLabel.textContent = 'Correto!';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-green-800 bg-green-100';
-                licaoAtual.letraIndex++; 
+                licaoAtual.letraIndex++; // Avança para a próxima letra.
 
+                // Atualiza a palavra na UI para mostrar a letra recém-acertada.
                 palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
                     `<span class="${index < licaoAtual.letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
                 ).join('');
 
+                // Pausa de 1 segundo para o usuário ver o feedback "Correto!".
                 setTimeout(() => {
                     if (licaoAtual.letraIndex >= palavra.length) { 
                         // --- PALAVRA COMPLETA ---
                         feedbackLabel.textContent = 'Palavra completa!';
                         proximaPalavraBtn.classList.remove('hidden'); 
-                        clearInterval(aprendizagemTimer); 
+                        clearInterval(aprendizagemTimer); // Pausa o timer até a próxima palavra.
                         aprendizagemTimer = null; 
                     } else { 
                         // --- PRÓXIMA LETRA ---
-                        apresentarDesafio();
+                        apresentarDesafio(); // Prepara a UI para a próxima letra.
                     }
                 }, 1000); 
 
@@ -584,6 +615,7 @@
             }
         }
 
+        // Avança para a próxima palavra na lição.
         function avancarLicao() {
             proximaPalavraBtn.classList.add('hidden');
             licaoAtual.palavraIndex++;
@@ -593,12 +625,13 @@
 
             if (palavraIndex >= licoes[catIndex].palavras.length) {
                 // --- LIÇÃO COMPLETA ---
-                showScreen('screenSelecaoLicao'); 
+                showScreen('screenSelecaoLicao'); // Volta para o menu de lições.
                 alert('Parabéns! Você completou esta lição!');
             } else {
                 // --- PRÓXIMA PALAVRA ---
                 apresentarDesafio();
 
+                // Reinicia o timer de verificação de gestos.
                 if (!aprendizagemTimer) {
                     aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
                 }
@@ -606,9 +639,11 @@
         }
 
         // =================================================================================
-        // BLOCO 4: FUNÇÕES DE AUTENTICAÇÃO (Novas)
+        // BLOCO 11: FUNÇÕES DE AUTENTICAÇÃO (LOGIN / CADASTRO)
         // =================================================================================
 
+        // --- PONTO CHAVE: LOGIN (ENTRAR) ---
+        // Função chamada pelo botão "Entrar" na tela de login.
         function handleSignIn() {
             const email = loginEmail.value;
             const password = loginPassword.value;
@@ -619,17 +654,22 @@
                 return;
             }
 
+            // 'auth.signInWithEmailAndPassword' é o comando do SDK do Firebase para tentar o login.
             auth.signInWithEmailAndPassword(email, password)
                 .then(userCredential => {
+                    // Sucesso: O "vigia" (onAuthStateChanged) cuidará de mudar a tela.
                     console.log('Login bem-sucedido:', userCredential.user.email);
                     loginPassword.value = ''; 
                 })
                 .catch(error => {
+                    // Erro: Mostra feedback para o usuário.
                     console.error('Erro no login:', error.message);
                     loginError.textContent = 'E-mail ou senha inválidos.';
                 });
         }
 
+        // --- PONTO CHAVE: LOGIN (CADASTRO) ---
+        // Função chamada pelo botão "Criar Conta".
         function handleSignUp() {
             const email = loginEmail.value;
             const password = loginPassword.value; 
@@ -644,12 +684,16 @@
                 return;
             }
 
+            // 'auth.createUserWithEmailAndPassword' é o comando do SDK para criar um novo usuário.
             auth.createUserWithEmailAndPassword(email, password)
                 .then(userCredential => {
+                    // Sucesso no cadastro.
                     console.log('Conta criada:', userCredential.user.email);
+                    // Chama a função para criar o documento no banco de dados.
                     return createUserDocument(userCredential.user);
                 })
                 .catch(error => {
+                    // Erro no cadastro.
                     console.error('Erro ao criar conta:', error.message);
                     if (error.code === 'auth/email-already-in-use') {
                         loginError.textContent = 'Este e-mail já está em uso.';
@@ -659,17 +703,21 @@
                 });
         }
 
-        // Salva os dados do usuário no Firestore
+        // --- PONTO CHAVE: BANCO DE DADOS (CRIAR DOCUMENTO) ---
+        // Função chamada com sucesso após 'handleSignUp' (criar conta).
         function createUserDocument(user) {
+            // 'db.collection('users').doc(user.uid)' cria uma referência 
+            // a um novo documento na coleção 'users', usando o ID único do usuário.
             const userRef = db.collection('users').doc(user.uid);
 
             const userData = {
                 uid: user.uid,
                 email: user.email,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(), 
-                progressoLicoes: {} // Objeto vazio para salvar o progresso
+                progressoLicoes: {} // Objeto vazio para salvar o progresso futuro.
             };
 
+            // 'userRef.set(userData)' é o comando do SDK que salva os dados no Firestore.
             return userRef.set(userData)
                 .then(() => {
                     console.log("Documento do usuário criado no Firestore");
@@ -679,8 +727,12 @@
                 });
         }
 
+        // --- PONTO CHAVE: LOGIN (SAIR) ---
+        // Função chamada pelo botão "Sair" na tela Home.
         function handleSignOut() {
+            // 'auth.signOut' é o comando do SDK para deslogar o usuário.
             auth.signOut().then(() => {
+                // Sucesso: O "vigia" (onAuthStateChanged) cuidará de mudar a tela.
                 console.log('Usuário deslogado.');
             }).catch(error => {
                 console.error('Erro ao sair:', error);
