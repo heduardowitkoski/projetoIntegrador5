@@ -23,6 +23,7 @@
 #include <Adafruit_Sensor.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <ArduinoJson.h> // Adicionado para a versão JSON do ESP32
 
 // --- CONFIGURAÇÕES DA REDE WI-FI ---
 const char* ssid = "Henrique204_RCT_2G";
@@ -31,8 +32,9 @@ const char* password = "Colorado2002";
 // Cria uma instância do servidor na porta 80
 WebServer server(80);
 
-// Variável global para o servidor web
+// Variáveis globais para o servidor web (agora uma char e um array de bytes)
 char letraReconhecida = '?';
+byte estadosLDR[5] = {0, 0, 0, 0, 0}; // Para armazenar o estado atual dos LDRs
 
 // --- Configuração do MPU6050 ---
 Adafruit_MPU6050 mpu;
@@ -74,13 +76,13 @@ const int LDR3 = 35; // Médio
 const int LDR4 = 34; // Indicador
 const int LDR5 = 36; // Polegar (SVP)
 
-byte Saida[5];
+// byte Saida[5]; // Substituído por estadosLDR
 const int LIMITE_LDR = 4000; // Ajuste conforme seus testes
 
 // --- FUNÇÃO DE CALIBRAÇÃO MPU ---
 void calibrarMPU() {
   Serial.println("Calibrando MPU... Mantenha o sensor parado na posição de repouso!");
-  delay(1000);
+  delay(1000); // Dá um segundo para a pessoa posicionar o sensor
   long num_leituras = 1000;
 
   for (int i = 0; i < num_leituras; i++) {
@@ -100,7 +102,10 @@ void calibrarMPU() {
   offset_gx /= num_leituras;
   offset_gy /= num_leituras;
   offset_gz /= num_leituras;
+
   Serial.println("Calibração concluída.");
+  Serial.print("Offsets de Aceleração (X,Y,Z): "); Serial.print(offset_ax, 2); Serial.print(", "); Serial.print(offset_ay, 2); Serial.print(", "); Serial.println(offset_az, 2);
+  Serial.print("Offsets de Giroscópio (X,Y,Z): "); Serial.print(offset_gx, 2); Serial.print(", "); Serial.print(offset_gy, 2); Serial.print(", "); Serial.println(offset_gz, 2);
 }
 
 // --- FUNÇÕES DO SERVIDOR WEB ---
@@ -108,8 +113,21 @@ void handleGesto() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   server.sendHeader("Access-Control-Allow-Headers", "*");
-  server.send(200, "text/plain", String(letraReconhecida));
+
+  DynamicJsonDocument doc(128); // 128 bytes é suficiente para "letra" e array de 5 bytes
+
+  doc["letra"] = String(letraReconhecida); // Converte char para String para o JSON
+  JsonArray dedosArray = doc.createNestedArray("dedos");
+  for (int i = 0; i < 5; i++) {
+    dedosArray.add(estadosLDR[i]);
+  }
+
+  String jsonOutput;
+  serializeJson(doc, jsonOutput);
+
+  server.send(200, "application/json", jsonOutput); // Envia como application/json
 }
+
 void handleNotFound() {
   server.send(404, "text/plain", "404: Nao encontrado");
 }
@@ -121,14 +139,14 @@ void setup() {
 
   // --- 1. Inicia MPU ---
   Serial.println("Iniciando MPU6050...");
-  Wire.begin(21, 22); // Pinos I2C
+  Wire.begin(21, 22); // Pinos I2C do ESP32 (verifique se são os corretos para sua placa)
   if (!mpu.begin()) {
     Serial.println("Falha ao encontrar MPU6050!");
     while (1) delay(10);
   }
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ); // Ou MPU6050_BAND_184_HZ, MPU6050_BAND_94_HZ, MPU6050_BAND_44_HZ
   calibrarMPU();
 
   // --- 2. Conexão Wi-Fi ---
@@ -154,18 +172,18 @@ void setup() {
 
 // --- FUNÇÕES AUXILIARES DE LEITURA ---
 void lerLDRs() {
-  (analogRead(LDR1) > LIMITE_LDR) ? Saida[0] = 0 : Saida[0] = 1;
-  (analogRead(LDR2) > LIMITE_LDR) ? Saida[1] = 0 : Saida[1] = 1;
-  (analogRead(LDR3) > LIMITE_LDR) ? Saida[2] = 0 : Saida[2] = 1;
-  (analogRead(LDR4) > LIMITE_LDR) ? Saida[3] = 0 : Saida[3] = 1;
-  (analogRead(LDR5) > LIMITE_LDR) ? Saida[4] = 0 : Saida[4] = 1;
+  (analogRead(LDR1) > LIMITE_LDR) ? estadosLDR[0] = 0 : estadosLDR[0] = 1;
+  (analogRead(LDR2) > LIMITE_LDR) ? estadosLDR[1] = 0 : estadosLDR[1] = 1;
+  (analogRead(LDR3) > LIMITE_LDR) ? estadosLDR[2] = 0 : estadosLDR[2] = 1;
+  (analogRead(LDR4) > LIMITE_LDR) ? estadosLDR[3] = 0 : estadosLDR[3] = 1;
+  (analogRead(LDR5) > LIMITE_LDR) ? estadosLDR[4] = 0 : estadosLDR[4] = 1;
 }
 
 char identificarLetraLDR() {
   for (int i = 0; i < NUM_LETRAS; i++) {
     bool match = true;
     for (int j = 0; j < 5; j++) {
-      if (Saida[j] != Alfabeto[i].chave[j]) {
+      if (estadosLDR[j] != Alfabeto[i].chave[j]) {
         match = false;
         break;
       }
@@ -184,7 +202,9 @@ void loop() {
   char letraFinal = '?'; // Começa como '?' por padrão
 
   // 2. PROCESSAR MPU APENAS SE A FORMA DA MÃO FOR RECONHECIDA
-  if (letraBase != '?') {
+  // Se você quiser ver os dados do MPU sempre, remova o 'if (letraBase != '?')'
+  // mas para testar o MPU, é bom ter os LDRs funcionando também
+  // if (letraBase != '?') { // Descomente esta linha para reativar a condição
     // 2a. Ler MPU
     sensors_event_t a, g, temp;
     mpu.getEvent(&a, &g, &temp);
@@ -198,6 +218,19 @@ void loop() {
     float gz = g.gyro.z - offset_gz;
 
     float gyroMag = sqrt(gx * gx + gy * gy + gz * gz);
+
+    // --- PRINTS DE DEBUG DO MPU6050 ---
+    Serial.print("ACC (cal) X:"); Serial.print(ax, 2);
+    Serial.print(" Y:"); Serial.print(ay, 2);
+    Serial.print(" Z:"); Serial.print(az, 2);
+    Serial.print(" | GYRO (cal) X:"); Serial.print(gx, 2);
+    Serial.print(" Y:"); Serial.print(gy, 2);
+    Serial.print(" Z:"); Serial.print(gz, 2);
+    Serial.print(" | GyroMag:"); Serial.print(gyroMag, 2);
+    Serial.print(" | G_Lim:"); Serial.print(LIMITE_MOVIMENTO_GYRO);
+    Serial.print(" | A_Lim:"); Serial.print(LIMITE_MOVIMENTO_ACEL);
+    Serial.print(" | Grav_Lim:"); Serial.print(LIMITE_GRAVIDADE);
+    // --- FIM DOS PRINTS DE DEBUG ---
 
     // 2b. MÁQUINA DE ESTADOS (DECISÃO)
     switch (letraBase) {
@@ -217,30 +250,57 @@ void loop() {
         break;
 
       case 'H': // 'H' (horizontal) vs 'U'/'V' (vertical)
-        if (abs(ay) > LIMITE_GRAVIDADE) letraFinal = 'U'; // Ou 'V'
-        else if (abs(az) > LIMITE_GRAVIDADE) letraFinal = 'H';
-        else letraFinal = 'H'; // Default
+        // Você precisará ajustar essa lógica de acordo com o que 'U' e 'V' significam
+        // para o seu sensor e como eles se diferenciam de 'H'.
+        // Exemplo: se 'U' e 'V' são mais "verticais", 'H' é "horizontal".
+        // Pode ser necessário verificar o sinal de ay ou az e thresholds diferentes.
+        // Para uma diferenciação mais robusta entre U e V, você pode precisar
+        // analisar a variação de um eixo específico ou a orientação da mão.
+        if (abs(ay) > LIMITE_GRAVIDADE && ay < 0) letraFinal = 'U'; // Ex: mão apontando para cima
+        else if (abs(ay) > LIMITE_GRAVIDADE && ay > 0) letraFinal = 'V'; // Ex: mão apontando para baixo
+        else letraFinal = 'H'; // Default se não for vertical o suficiente
         break;
       
-      // Adicione mais 'case' aqui para F/T, K/P, M/W
+      // Adicione mais 'case' aqui para F/T, K/P, M/W, etc.
+      case 'F': // 'F' vs 'T'
+        // Exemplo: se 'T' envolve o polegar mais escondido ou um movimento específico
+        // Mantenha como 'F' se não houver movimento distintivo
+        letraFinal = 'F'; 
+        break;
+
+      case 'K': // 'K' vs 'P'
+        // Exemplo: 'P' geralmente tem a mão virada para baixo, 'K' mais reta
+        // Verifique a orientação do eixo Z (roll) ou X (pitch)
+        letraFinal = 'K'; 
+        break;
+
+      case 'M': // 'M' vs 'W'
+        // 'M' e 'W' podem ser difíceis apenas com LDRs, talvez o MPU ajude com pequenos movimentos
+        letraFinal = 'M';
+        break;
 
       default:
         // Se a letra não é ambígua (A, B, L...), usa a letraBase
         letraFinal = letraBase;
         break;
     }
-  }
+  // } // Descomente esta linha para reativar a condição
   // Se letraBase era '?', letraFinal permanecerá '?'
 
-  // 3. ATUALIZAR VARIÁVEL GLOBAL PARA O SERVIDOR
+  // 3. ATUALIZAR VARIÁVEIS GLOBAIS PARA O SERVIDOR
   letraReconhecida = letraFinal;
+  // Os 'estadosLDR' já foram atualizados pela função lerLDRs()
 
   // 4. PROCESSAR REQUISIÇÕES WEB
   server.handleClient();
 
-  // 5. DEBUG E DELAY
-  Serial.print("Dedos: "); Serial.print(letraBase);
-  Serial.print(" | MPU diz: "); Serial.println(letraFinal);
+  // 5. DEBUG E DELAY (Combinado para MPU e Letra)
+  Serial.print(" | Dedos: ");
+  for (int i = 0; i < 5; i++) {
+    Serial.print(estadosLDR[i]);
+    Serial.print(" ");
+  }
+  Serial.print(" | Letra Base LDR: "); Serial.print(letraBase);
+  Serial.print(" | Letra Final: "); Serial.println(letraFinal);
   delay(50); // Delay menor para melhor responsividade
 }
-
