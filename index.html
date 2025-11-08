@@ -11,35 +11,57 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
     
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
     <style>
-        /* Define a fonte 'Inter' como padrão para todo o corpo */
         body { font-family: 'Inter', sans-serif; }
-        
-        /* Classe para o gradiente principal usado na tela inicial */
         .main-gradient { background-image: linear-gradient(to top right, #4f46e5, #6366f1); }
-        
-        /* Estilização padrão do botão primário (usado em 'Conectar' e 'Próxima Palavra') */
         .btn-primary {
-            background-color: #14b8a6; /* Cor teal */
+            background-color: #14b8a6;
             color: white;
             transition: all 0.3s ease;
         }
-        .btn-primary:hover { background-color: #0d9488; } /* Escurece no hover */
-        
-        /* Efeito de hover para os cartões (lições e botões da home) */
+        .btn-primary:hover { background-color: #0d9488; }
         .card-hover { transition: all 0.3s ease; }
         .card-hover:hover { 
-            transform: translateY(-6px); /* Eleva o cartão */
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1); /* Sombra mais forte */
+            transform: translateY(-6px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
         }
     </style>
 </head>
 <body class="bg-gray-200 flex items-center justify-center min-h-screen">
 
-    <div class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div id="screenLogin" class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="h-[700px] flex flex-col p-8">
+            <div class="flex-1 flex flex-col items-center justify-center">
+                <div class="bg-indigo-100 p-4 rounded-full mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M12 10v4"/><path d="M12 18.5a2.5 2.5 0 0 1-5 0V16a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 1-5 0V16"/><path d="M12 14h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 5 0V16a2 2 0 0 0-2-2h-1"/></svg>
+                </div>
+                <h1 class="text-5xl font-extrabold mb-2 text-gray-800">SRGL</h1>
+                <p class="text-gray-500 mb-8">Acesse sua conta para continuar</p>
+
+                <div class="w-full flex flex-col space-y-4">
+                    <input type="email" id="loginEmail" placeholder="E-mail" class="w-full px-4 py-3 border border-gray-300 bg-gray-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="loginPassword" placeholder="Senha" class="w-full px-4 py-3 border border-gray-300 bg-gray-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p id="loginError" class="text-red-500 text-sm text-center h-4"></p>
+                    <button onclick="handleSignIn()" class="w-full btn-primary font-bold py-4 px-6 rounded-xl shadow-lg">
+                        Entrar
+                    </button>
+                    <button onclick="handleSignUp()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 px-6 rounded-xl">
+                        Criar Conta
+                    </button>
+                </div>
+            </div>
+            <div class="text-xs text-gray-400 text-center mt-4">Projeto Integrador V</div>
+        </div>
+    </div>
+
+    <div class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden hidden" id="appContainer">
         <div class="h-[700px] flex flex-col">
 
-            <div id="screenHome" class="flex flex-col h-full p-8 text-center main-gradient text-white">
+            <div id="screenHome" class="hidden flex-col h-full p-8 text-center main-gradient text-white">
                 <div class="flex-1 flex flex-col items-center justify-center">
                     <div class="bg-white/20 p-4 rounded-full mb-6 backdrop-blur-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M12 10v4"/><path d="M12 18.5a2.5 2.5 0 0 1-5 0V16a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 1-5 0V16"/><path d="M12 14h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 5 0V16a2 2 0 0 0-2-2h-1"/></svg>
@@ -65,30 +87,34 @@
                     <p id="statusConexao" class="text-indigo-200 text-sm mt-3">Status: Desconectado</p>
                 </div>
                 
-                <div class="text-xs text-indigo-300 mt-4">Projeto Integrador V</div>
+                <div class="text-xs text-indigo-300 mt-4 text-center">
+                    <span id="userEmailDisplay" class="font-semibold block mb-1"></span>
+                    <button onclick="handleSignOut()" class="font-semibold hover:text-white underline">Sair</button>
+                </div>
             </div>
 
             <div id="screenSelecaoLicao" class="hidden flex-col h-full p-6 bg-gray-50">
-                <div class="flex items-center mb-6">
+                 <div class="flex items-center mb-6">
                     <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
                     <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Lições</h2>
                 </div>
                 <p class="text-center text-gray-600 mb-6">Escolha uma categoria para começar a praticar.</p>
-                
-                <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2">
-                </div>
+                <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2"></div>
             </div>
 
             <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
-                <div class="flex items-center mb-4">
+                 <div class="flex items-center mb-4">
                     <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
                     <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Tradução</h2>
                 </div>
                 
-                
                 <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6">
                     <p id="statusTraducao" class="text-lg text-gray-500 font-semibold mb-4">Status: Desconectado</p>
-                    <div id="gestoExibido" class="text-9xl font-extrabold text-indigo-600">-</div>
+                    
+                    <div id="gestoExibido" class="w-64 h-64 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden shadow-inner">
+                        <img id="gestoImgTraducao" src="" alt="Gesto" class="hidden w-full h-full object-cover">
+                        <span id="gestoFallbackTraducao" class="text-9xl font-extrabold text-indigo-600">-</span>
+                    </div>
                 </div>
                 
                 <div class="mt-4 p-4 bg-gray-100 rounded-xl">
@@ -101,7 +127,7 @@
             </div>
 
             <div id="screenAprendizagem" class="hidden flex-col h-full p-6 bg-gray-50">
-                <div class="flex items-center mb-4">
+                 <div class="flex items-center mb-4">
                     <button onclick="showScreen('screenSelecaoLicao')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</sapan>
                     <h2 id="categoriaTitulo" class="flex-1 text-center text-2xl font-bold text-gray-800">Aprendendo</h2>
                 </div>
@@ -112,9 +138,17 @@
                 </div>
                 
                 <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6 space-y-2">
+                    
+                    <div id="gestoContainerAprendizagem" class="w-32 h-32 mb-2 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shadow-inner">
+                        <img id="gestoImgAprendizagem" src="" alt="Gesto de Exemplo" class="hidden w-full h-full object-cover">
+                        <span id="gestoFallbackAprendizagem" class="text-5xl text-gray-400">?</span>
+                    </div>
+
                     <p class="text-gray-500 text-lg">Faça o gesto para a letra:</p>
                     <div id="letraDesafioLabel" class="text-9xl font-extrabold text-teal-500">?</div>
                     <div id="feedbackLabel" class="w-full p-3 rounded-lg text-center font-semibold">Aguarde...</div>
+                    
+                    <div id="feedbackLDR" class="w-full p-3 rounded-lg text-center text-sm text-gray-700 bg-gray-100 mt-2"></div>
                 </div>
                 
                 <div class="mt-4">
@@ -127,13 +161,62 @@
     
     <script>
         // =================================================================================
-        // BLOCO 3.1: ESTRUTURA DE DADOS DAS LIÇÕES
+        // BLOCO 1: INICIALIZAÇÃO E SERVIÇOS DO FIREBASE
+        // =================================================================================
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyB1qc2AyWRupxNejbj7pZ-jecl23XzAvPE",
+          authDomain: "srgl-f2eab.firebaseapp.com",
+          projectId: "srgl-f2eab",
+          storageBucket: "srgl-f2eab.firebasestorage.app",
+          messagingSenderId: "873645083737",
+          appId: "1:873645083737:web:7b68b9e0c605ea01e8b548"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // =================================================================================
+        // BLOCO 2: REFERÊNCIAS AOS ELEMENTOS HTML (DOM)
+        // =================================================================================
+        const loginScreen = document.getElementById('screenLogin');
+        const appContainer = document.getElementById('appContainer');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        const allScreens = ['screenHome', 'screenSelecaoLicao', 'screenTraducao', 'screenAprendizagem', 'screenLogin'];
+        const ipInput = document.getElementById('espIpInput');
+        const connectButton = document.getElementById('connectButton');
+        const statusConexao = document.getElementById('statusConexao');
+        const statusLabelTraducao = document.getElementById('statusTraducao');
+        
+        // --- Modo Tradução (COM IMAGEM) ---
+        const gestoLabel = document.getElementById('gestoExibido');
+        const palavraLabel = document.getElementById('palavraFormada');
+        const gestoImgTraducao = document.getElementById('gestoImgTraducao');
+        const gestoFallbackTraducao = document.getElementById('gestoFallbackTraducao');
+
+        // --- Modo Aprendizagem (COM IMAGEM e LDR) ---
+        const licoesContainer = document.getElementById('licoesContainer');
+        const categoriaTitulo = document.getElementById('categoriaTitulo');
+        const palavraDesafioContainer = document.getElementById('palavraDesafioContainer');
+        const letraDesafioLabel = document.getElementById('letraDesafioLabel');
+        const feedbackLabel = document.getElementById('feedbackLabel');
+        const proximaPalavraBtn = document.getElementById('proximaPalavraBtn');
+        const gestoImgAprendizagem = document.getElementById('gestoImgAprendizagem');
+        const gestoFallbackAprendizagem = document.getElementById('gestoFallbackAprendizagem');
+        // ✅ NOVO ELEMENTO DE FEEDBACK DE DEDOS
+        const feedbackLDR = document.getElementById('feedbackLDR');
+        
+        // =================================================================================
+        // BLOCO 3: ESTRUTURA DE DADOS (LIÇÕES)
         // =================================================================================
         const licoes = [
             {
                 categoria: "Cores",
                 icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.34 0 .67-.02 1-.05M12 2c5.52 0 10 4.48 10 10 0 .34-.02.67-.05 1M6.4 17.6A8 8 0 0 0 17.6 6.4"/></svg>`,
-                palavras: ["AZUL", "VERDE", "SOL"], // Palavras em maiúsculas para facilitar a comparação
+                palavras: ["AZUL", "VERDE", "SOL"],
                 cor: "bg-blue-500"
             },
             {
@@ -149,52 +232,95 @@
                 cor: "bg-yellow-500"
             }
         ];
-        
-        // =================================================================================
-        // BLOCO 3.2: VARIÁVEIS GLOBAIS E ELEMENTOS DOM
-        // =================================================================================
-        
-        // Referência a todas as telas para a função showScreen
-        const allScreens = ['screenHome', 'screenSelecaoLicao', 'screenTraducao', 'screenAprendizagem'];
-        const ipInput = document.getElementById('espIpInput'); // Agora na Tela 1
-        
-        // --- Elementos de Conexão (Tela 1) ---
-        const connectButton = document.getElementById('connectButton');
-        const statusConexao = document.getElementById('statusConexao'); // Novo label de status
-        
-        // --- Elementos Modo Tradução (Tela 3) ---
-        const statusLabelTraducao = document.getElementById('statusTraducao'); // Label de status local
-        const gestoLabel = document.getElementById('gestoExibido');
-        const palavraLabel = document.getElementById('palavraFormada');
-        
-        // --- Elementos Modo Aprendizagem (Tela 2 e 4) ---
-        const licoesContainer = document.getElementById('licoesContainer');
-        const categoriaTitulo = document.getElementById('categoriaTitulo');
-        const palavraDesafioContainer = document.getElementById('palavraDesafioContainer');
-        const letraDesafioLabel = document.getElementById('letraDesafioLabel');
-        const feedbackLabel = document.getElementById('feedbackLabel');
-        const proximaPalavraBtn = document.getElementById('proximaPalavraBtn');
-        
-        // --- Variáveis de Estado Global ---
-        let isConnected = false;             // Controla o estado da conexão (Master Switch)
-        let currentScreen = 'screenHome';    // Rastreia a tela atual
-        let traducaoTimer = null;            // Timer para fetch "ao vivo" (Tradução)
-        let palavraTimer = null;             // Timer para concatenar palavra (Tradução)
-        let aprendizagemTimer = null;        // Timer para fetch (Aprendizagem)
-        let homeConnectionTimer = null;      // NOVO: Timer para verificar conexão na tela Home
-        let palavraAtualTraducao = "-";      // Palavra do Modo Tradução
-        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 }; // Progresso da lição
-        let acertouLetraAtual = false;       // Trava do Modo Aprendizagem
 
         // =================================================================================
-        // BLOCO 3.3: INICIALIZAÇÃO DA APLICAÇÃO
+        // BLOCO 3.5: MAPA DE IMAGENS E DADOS DE DEDOS
         // =================================================================================
         
-        window.onload = () => {
+        // Mapa de imagens locais (da pasta /gestos/)
+        const gestureImages = {
+            "A": "gestos/A.png", "B": "gestos/B.png", "C": "gestos/C.png",
+            "D": "gestos/D.png", "E": "gestos/E.png", "F": "gestos/F.png",
+            "G": "gestos/G.png", "H": "gestos/H.png", "I": "gestos/I.png",
+            "J": "gestos/J.png", "K": "gestos/K.png", "L": "gestos/L.png",
+            "M": "gestos/M.png", "N": "gestos/N.png", "O": "gestos/O.png",
+            "P": "gestos/P.png", "Q": "gestos/Q.png", "R": "gestos/R.png",
+            "S": "gestos/S.png", "T": "gestos/T.png", "U": "gestos/U.png",
+            "V": "gestos/V.png", "W": "gestos/W.png", "X": "gestos/X.png",
+            "Y": "gestos/Y.png", "Z": "gestos/Z.png",
+            "?": "gestos/INTERROGACAO.png" 
+        };
+        
+        // ✅ NOVAS VARIÁVEIS GLOBAIS PARA O FEEDBACK DE DEDOS
+        let alfabetoLDR = {}; // Será preenchido pelo JSON
+        // A ordem (Mindinho...Polegar) deve bater com a ordem do array 'dedos' do ESP32
+        const nomeDedos = ["Mindinho", "Anelar", "Médio", "Indicador", "Polegar"];
+        
+        // =================================================================================
+        // BLOCO 4: VARIÁVEIS DE ESTADO GLOBAL
+        // =================================================================================
+        let isConnected = false;
+        let currentScreen = 'screenLogin';
+        let traducaoTimer = null;
+        let palavraTimer = null;
+        let aprendizagemTimer = null;
+        let homeConnectionTimer = null;
+        let palavraAtualTraducao = "-";
+        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 };
+        let acertouLetraAtual = false;
+
+        // =================================================================================
+        // BLOCO 5: CONTROLE DE AUTENTICAÇÃO (O "VIGIA")
+        // =================================================================================
+        
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log("Usuário logado:", user.email);
+                loginScreen.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                showScreen('screenHome');
+                userEmailDisplay.textContent = user.email;
+                inicializarApp();
+            } else {
+                console.log("Nenhum usuário logado.");
+                loginScreen.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                if (isConnected) {
+                    toggleConnection(); 
+                }
+                loginPassword.value = "";
+                loginError.textContent = "";
+                currentScreen = 'screenLogin';
+            }
+        });
+
+        // =================================================================================
+        // BLOCO 6: INICIALIZAÇÃO DA APLICAÇÃO (PÓS-LOGIN)
+        // =================================================================================
+
+        // ✅ INICIALIZAÇÃO ATUALIZADA
+        function inicializarApp() {
             const savedIp = localStorage.getItem('espIpAddress');
             if (savedIp) ipInput.value = savedIp;
             gerarCartoesLicao();
+            carregarAlfabetoJson(); // ✅ Carrega os dados dos dedos
         };
+
+        // ✅ NOVA FUNÇÃO PARA CARREGAR O JSON (do seu código)
+        async function carregarAlfabetoJson() {
+            try {
+                const response = await fetch('alfabetoLDR.json'); // Caminho para o arquivo JSON
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                alfabetoLDR = await response.json();
+                console.log("Alfabeto LDR carregado com sucesso.");
+            } catch (error) {
+                console.error("Erro ao carregar alfabetoLDR.json:", error);
+                // Tenta exibir o erro em um local que o usuário possa ver
+                if(feedbackLDR) feedbackLDR.textContent = "Erro ao carregar dados dos gestos (JSON).";
+            }
+        }
 
         function gerarCartoesLicao() {
             licoesContainer.innerHTML = '';
@@ -213,133 +339,136 @@
         }
         
         // =================================================================================
-        // BLOCO 3.4: NAVEGAÇÃO E CONTROLE GERAL
+        // BLOCO 6.5: FUNÇÃO DE ATUALIZAÇÃO DE IMAGEM
+        // =================================================================================
+
+        function updateGestureImage(letter, imgElement, fallbackElement) {
+            const url = gestureImages[letter];
+            
+            if (url) {
+                imgElement.src = url;
+                imgElement.classList.remove('hidden');
+                fallbackElement.classList.add('hidden');
+            } else {
+                imgElement.classList.add('hidden');
+                imgElement.src = ""; 
+                fallbackElement.classList.remove('hidden');
+                fallbackElement.textContent = letter;
+            }
+        }
+
+        // =================================================================================
+        // BLOCO 7: NAVEGAÇÃO ENTRE TELAS (ATUALIZADO)
         // =================================================================================
         
-        /**
-         * Gerenciador central de telas e timers.
-         * Garante que os timers (fetch) só rodem quando a tela correspondente
-         * estiver visível, preservando a conexão (isConnected) entre as telas.
-         */
         function showScreen(screenId) {
-            // --- LIMPEZA (Parar timers da tela que estamos SAINDO) ---
+            // 1. LIMPEZA
             if (currentScreen === 'screenTraducao') {
                 clearInterval(traducaoTimer);
                 clearInterval(palavraTimer);
                 traducaoTimer = null;
                 palavraTimer = null;
+                updateGestureImage('-', gestoImgTraducao, gestoFallbackTraducao);
             }
             if (currentScreen === 'screenAprendizagem') {
                 clearInterval(aprendizagemTimer);
                 aprendizagemTimer = null;
+                updateGestureImage('?', gestoImgAprendizagem, gestoFallbackAprendizagem);
+                feedbackLDR.textContent = ''; // ✅ Limpa o feedback LDR
             }
-            // Limpar o timer da Home ao SAIR da Home
             if (currentScreen === 'screenHome') {
                 clearInterval(homeConnectionTimer);
                 homeConnectionTimer = null;
             }
 
-            // --- NAVEGAÇÃO ---
-            allScreens.forEach(id => document.getElementById(id).classList.add('hidden'));
+            // 2. NAVEGAÇÃO
+            allScreens.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden'); 
+            });
             document.getElementById(screenId).classList.remove('hidden');
-            currentScreen = screenId; // Atualiza o rastreador da tela atual
+            currentScreen = screenId; 
 
-            // --- INICIALIZAÇÃO (Iniciar timers da tela que estamos ENTRANDO) ---
-            
-            // Se for para a tela de Tradução
+            // 3. INICIALIZAÇÃO
             if (screenId === 'screenTraducao') {
                 if (isConnected) {
-                    traducaoTimer = setInterval(fetchGestoTraducao, 1200);
+                    traducaoTimer = setInterval(fetchGestoTraducao, 1200); // Usará o fetch /gesto (JSON)
                     palavraTimer = setInterval(concatenarLetra, 4000);
-                    fetchGestoTraducao(); // Chama imediatamente para um feedback rápido
-                    statusLabelTraducao.textContent = 'Status: Conectando...'; // Estado inicial ao entrar na tela
+                    fetchGestoTraducao(); 
+                    statusLabelTraducao.textContent = 'Status: Conectando...'; 
                 } else {
                     statusLabelTraducao.textContent = 'Status: Desconectado. Conecte-se na tela inicial.';
-                    gestoLabel.textContent = '-';
                     palavraLabel.textContent = '-';
                     palavraAtualTraducao = '-';
+                    updateGestureImage('-', gestoImgTraducao, gestoFallbackTraducao);
                 }
             }
-            // Se for para a tela de Seleção de Lição
             else if (screenId === 'screenSelecaoLicao') {
                 if (!isConnected) {
                     alert("Por favor, conecte-se a um IP na tela inicial para usar o modo Aprendizagem.");
                 }
             }
-            // Se for para a tela de Aprendizagem, a função iniciarLicao já cuidará do timer
             else if (screenId === 'screenAprendizagem') {
                 if (!isConnected) {
                     alert("Por favor, conecte-se a um IP na tela inicial para usar o modo Aprendizagem.");
                 }
             }
-            // Se for para a tela Home, e já estiver conectado, inicie o timer da home
             else if (screenId === 'screenHome') {
                 if (isConnected) {
-                    homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000); // Verifica a cada 2s
-                    checkHomeConnectionStatus(); // Chama imediatamente
+                    homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000); 
+                    checkHomeConnectionStatus(); 
                 }
             }
         }
         
         // =================================================================================
-        // BLOCO 3.5: MODO TRADUÇÃO E CONEXÃO
+        // BLOCO 8: LÓGICA DE CONEXÃO COM O HARDWARE (ESP32)
         // =================================================================================
         
-        /**
-         * Controla o botão "Conectar/Parar" (Master Switch).
-         * Agora, inicia/para um timer para o status da conexão na própria Home.
-         */
         function toggleConnection() {
             if (isConnected) { 
-                // --- AÇÃO: DESCONECTAR ---
                 isConnected = false;
                 ipInput.disabled = false;
                 connectButton.textContent = 'Conectar';
-                connectButton.classList.remove('bg-red-500');
+                connectButton.classList.remove('bg-red-500', 'hover:bg-red-600'); 
+                connectButton.classList.add('btn-primary'); 
                 statusConexao.textContent = 'Status: Desconectado';
-                
-                // Força a parada de todos os timers (segurança)
                 clearInterval(traducaoTimer); traducaoTimer = null;
                 clearInterval(palavraTimer); palavraTimer = null;
                 clearInterval(aprendizagemTimer); aprendizagemTimer = null;
-                clearInterval(homeConnectionTimer); homeConnectionTimer = null; // Zera o timer da Home também
-                
+                clearInterval(homeConnectionTimer); homeConnectionTimer = null; 
             } else { 
-                // --- AÇÃO: CONECTAR ---
                 const ip = ipInput.value.trim();
                 if (!ip) { alert("Por favor, insira um endereço de IP."); return; }
-                localStorage.setItem('espIpAddress', ip); // Salva o IP
-
+                localStorage.setItem('espIpAddress', ip); 
                 isConnected = true;
                 ipInput.disabled = true;
-                
-                // Atualiza a UI da Home
                 connectButton.textContent = 'Parar';
-                connectButton.classList.add('bg-red-500');
-                statusConexao.textContent = 'Status: Conectando...'; // Feedback imediato
-                
-                // Inicia o timer para verificar a conexão na tela Home
-                clearInterval(homeConnectionTimer); // Limpa qualquer timer antigo
-                homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000); // Verifica a cada 2s
-                checkHomeConnectionStatus(); // Chama a função imediatamente para ter um feedback rápido
+                connectButton.classList.remove('btn-primary'); 
+                connectButton.classList.add('bg-red-500', 'hover:bg-red-600'); 
+                statusConexao.textContent = 'Status: Conectando...'; 
+                clearInterval(homeConnectionTimer); 
+                homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000); 
+                checkHomeConnectionStatus(); 
             }
         }
 
-        // NOVA FUNÇÃO: Verifica a conexão especificamente para a tela Home
         async function checkHomeConnectionStatus() {
-            if (!isConnected) { // Se por algum motivo isConnected se tornou false, para o timer
+            if (!isConnected) { 
                 clearInterval(homeConnectionTimer);
                 homeConnectionTimer = null;
                 statusConexao.textContent = 'Status: Desconectado';
                 connectButton.textContent = 'Conectar';
-                connectButton.classList.remove('bg-red-500');
+                connectButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                connectButton.classList.add('btn-primary');
                 ipInput.disabled = false;
                 return;
             }
             try {
-                const response = await fetch(`http://${ipInput.value}/gesto`);
+                // ✅ Rota /gesto agora deve retornar JSON
+                const response = await fetch(`http://${ipInput.value}/gesto`); 
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                await response.text(); // Apenas lê a resposta para garantir que a conexão foi bem-sucedida
+                await response.json(); // Apenas testa se a resposta é um JSON válido
                 statusConexao.textContent = 'Status: Conectado';
             } catch (error) {
                 console.error("Falha na comunicação (Home):", error);
@@ -347,39 +476,42 @@
             }
         }
 
-        // Função chamada pelo Timer 1 (a cada 1.2s) - MODO TRADUÇÃO
+        // =================================================================================
+        // BLOCO 9: LÓGICA DO MODO TRADUÇÃO (ATUALIZADO PARA JSON)
+        // =================================================================================
+
+        // ✅ ATUALIZADO: Agora espera JSON do ESP32
         async function fetchGestoTraducao() {
             if (!isConnected) {
                 statusLabelTraducao.textContent = 'Status: Desconectado.';
-                gestoLabel.textContent = '!';
+                updateGestureImage('!', gestoImgTraducao, gestoFallbackTraducao);
                 return;
             }
             try {
+                // ✅ Rota /gesto agora deve retornar JSON
                 const response = await fetch(`http://${ipInput.value}/gesto`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const letra = await response.text();
+                const data = await response.json(); // Espera {"letra": "A", "dedos": [...]}
+                const letra = data.letra;
                 
-                statusLabelTraducao.textContent = 'Status: Conectado'; // Garante que o status local esteja certo
-                gestoLabel.textContent = letra; // Mostra a letra (A, B, C, ou ?)
+                statusLabelTraducao.textContent = 'Status: Conectado'; 
+                updateGestureImage(letra, gestoImgTraducao, gestoFallbackTraducao);
 
             } catch (error) {
                 console.error("Falha na comunicação (Tradução):", error);
                 statusLabelTraducao.textContent = 'Status: Erro de Conexão. Tentando...';
-                gestoLabel.textContent = '!'; // Mostra '!' para indicar erro
-                // O timer continua tentando reconectar...
+                updateGestureImage('!', gestoImgTraducao, gestoFallbackTraducao);
             }
         }
 
-        // Reseta a palavra formada
         function limparPalavra() {
             palavraAtualTraducao = "-";
             palavraLabel.textContent = palavraAtualTraducao;
         }
 
-        // Função chamada pelo Timer 2 (a cada 4s) - MODO TRADUÇÃO
         function concatenarLetra() {
-            const letra = gestoLabel.textContent;
-            if (letra === '-' || letra === '!' || letra === '?') return; // Ignora símbolos de status
+            const letra = gestoFallbackTraducao.textContent;
+            if (letra === '-' || letra === '!' || letra === '?') return; 
 
             if (palavraAtualTraducao === "-") {
                 palavraAtualTraducao = letra;
@@ -390,18 +522,16 @@
         }
 
         // =================================================================================
-        // BLOCO 3.6: MODO APRENDIZAGEM (LÓGICA CORRIGIDA)
+        // BLOCO 10: LÓGICA DO MODO APRENDIZAGEM (ATUALIZADO PARA JSON E LDR)
         // =================================================================================
         
-        // Chamada ao clicar em um cartão de lição
         function iniciarLicao(catIndex, retomando = false) {
             if (!isConnected) {
                 alert("Você precisa conectar-se ao ESP32 na tela inicial antes de iniciar uma lição.");
                 showScreen('screenHome');
-                return; // Impede que a lição comece se não estiver conectado
+                return; 
             }
 
-            // Se não estivermos retomando (ou seja, clicamos no cartão), resetamos o progresso
             if (!retomando) {
                 licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
             }
@@ -409,67 +539,73 @@
             categoriaTitulo.textContent = licoes[licaoAtual.catIndex].categoria;
             proximaPalavraBtn.classList.add('hidden');
             
-            // Se estamos vindo da tela de seleção, troca a tela
             if (!retomando) {
                 showScreen('screenAprendizagem');
             }
 
             apresentarDesafio();
 
-            // Inicia o loop (timer) de verificação
-            clearInterval(aprendizagemTimer); // Limpa timer antigo (segurança)
+            clearInterval(aprendizagemTimer); 
             aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
         }
 
-        // Atualiza a UI com o desafio (palavra/letra) atual
+        // ✅ ATUALIZADO: Mostra imagem e limpa feedback LDR
         function apresentarDesafio() {
-            acertouLetraAtual = false; // Reseta a trava de acerto
+            acertouLetraAtual = false; 
             const { catIndex, palavraIndex, letraIndex } = licaoAtual;
             const palavra = licoes[catIndex].palavras[palavraIndex]; 
             const letra = palavra[letraIndex];
 
-            // --- MUDANÇA AQUI: Renderiza a palavra dinamicamente, destacando a letra atual ---
             palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
                 `<span class="${index < letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
             ).join('');
 
             letraDesafioLabel.textContent = letra;
+            updateGestureImage(letra, gestoImgAprendizagem, gestoFallbackAprendizagem);
             feedbackLabel.textContent = 'Aguardando seu gesto...';
             feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
+            feedbackLDR.textContent = ''; // ✅ Limpa feedback de dedos
         }
 
-        // Função chamada pelo Timer de Aprendizagem (a cada 1.2s)
+        // ✅ ATUALIZADO: Espera JSON e chama 'darFeedbackDedos'
         async function fetchGestoAprendizagem() {
             if (acertouLetraAtual) return; 
             if (!isConnected) {
                 feedbackLabel.textContent = 'Desconectado. Reconecte na tela inicial.';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
+                feedbackLDR.textContent = '';
                 return;
             }
 
             try {
+                // ✅ Rota /gesto agora deve retornar JSON
                 const response = await fetch(`http://${ipInput.value}/gesto`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const letraRecebida = await response.text();
-                
+                const data = await response.json(); // Espera {"letra": "A", "dedos": [0,0,0,0,1]}
+                const letraRecebida = data.letra;
+                const dedosRecebidos = data.dedos; 
+
                 if (feedbackLabel.textContent.includes('Erro de Conexão')) {
                     feedbackLabel.textContent = 'Aguardando seu gesto...';
                     feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
                 }
 
                 if (letraRecebida !== '?') {
-                    verificarGesto(letraRecebida);
+                    verificarGesto(letraRecebida, dedosRecebidos); // Passa os dedos
+                } else {
+                    // Letra não reconhecida, mas dá feedback dos dedos
+                    darFeedbackDedos(dedosRecebidos);
                 }
             } catch (error) {
                 console.error("Falha na comunicação (Aprendizagem):", error);
                 feedbackLabel.textContent = 'Erro de Conexão. Verifique o IP ou a luva.';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
-                // O timer continua ativo, tentando reconectar
+                feedbackLDR.textContent = '';
             }
         }
 
-        // Compara o gesto recebido com a letra correta
-        function verificarGesto(letraRecebida) {
+        // ✅ ATUALIZADO: Aceita 'dedosRecebidos' e chama 'darFeedbackDedos' no erro
+        function verificarGesto(letraRecebida, dedosRecebidos) {
             const { catIndex, palavraIndex, letraIndex } = licaoAtual;
             const palavra = licoes[catIndex].palavras[palavraIndex];
             const letraCorreta = palavra[letraIndex];
@@ -479,34 +615,74 @@
                 acertouLetraAtual = true; 
                 feedbackLabel.textContent = 'Correto!';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-green-800 bg-green-100';
+                feedbackLDR.textContent = ''; // ✅ Limpa feedback de dedos
                 licaoAtual.letraIndex++; 
 
-                // --- MUDANÇA AQUI: Atualiza a palavra em tempo real com a letra que o usuário acertou ---
                 palavraDesafioContainer.innerHTML = palavra.split('').map((char, index) => 
                     `<span class="${index < licaoAtual.letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
                 ).join('');
 
                 setTimeout(() => {
                     if (licaoAtual.letraIndex >= palavra.length) { 
-                        // --- PALAVRA COMPLETA ---
                         feedbackLabel.textContent = 'Palavra completa!';
                         proximaPalavraBtn.classList.remove('hidden'); 
-                        clearInterval(aprendizagemTimer); // PAUSA o timer
+                        clearInterval(aprendizagemTimer); 
                         aprendizagemTimer = null; 
                     } else { 
-                        // --- PRÓXIMA LETRA ---
                         apresentarDesafio();
                     }
-                }, 1000); // Delay de 1s para o usuário ver o feedback "Correto!"
+                }, 1000); 
 
             } else {
                 // --- ERROU ---
                 feedbackLabel.textContent = `Incorreto. Tente a letra "${letraCorreta}" novamente.`;
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
+                // ✅ Dá feedback dos dedos
+                darFeedbackDedos(dedosRecebidos);
             }
         }
 
-        // Chamado pelo botão "Próxima Palavra"
+        // ✅ NOVA FUNÇÃO: 'darFeedbackDedos' (do seu código)
+        function darFeedbackDedos(dedosRecebidos) {
+            const { catIndex, palavraIndex, letraIndex } = licaoAtual;
+            const palavra = licoes[catIndex].palavras[palavraIndex];
+            const letraCorreta = palavra[letraIndex];
+
+            const estadoIdealDedos = alfabetoLDR[letraCorreta];
+
+            if (!estadoIdealDedos) {
+                feedbackLDR.textContent = 'Não há dados de dedos configurados para esta letra.';
+                return;
+            }
+            if (!dedosRecebidos || dedosRecebidos.length < 5) {
+                feedbackLDR.textContent = 'Recebendo dados incompletos dos dedos.';
+                return;
+            }
+
+            let feedback = [];
+            for (let i = 0; i < nomeDedos.length; i++) { 
+                const dedoNome = nomeDedos[i];
+                const estadoIdeal = estadoIdealDedos[i];
+                const estadoAtual = dedosRecebidos[i];
+
+                if (estadoIdeal !== null && estadoIdeal !== undefined && estadoIdeal !== estadoAtual) {
+                    // Compara o estado ideal (0 ou 1) com o estado atual
+                    if (estadoIdeal === 1) {
+                        feedback.push(`${dedoNome} deve estar levantado.`);
+                    } else {
+                        feedback.push(`${dedoNome} deve estar dobrado.`);
+                    }
+                }
+            }
+
+            if (feedback.length > 0) {
+                feedbackLDR.textContent = "Ajuste: " + feedback.join(' ');
+            } else {
+                // Se nenhum dedo estiver "errado" mas a letra foi '?', é um gesto próximo
+                feedbackLDR.textContent = 'Quase lá! Verifique a posição da mão.';
+            }
+        }
+
         function avancarLicao() {
             proximaPalavraBtn.classList.add('hidden');
             licaoAtual.palavraIndex++;
@@ -515,18 +691,95 @@
             const { catIndex, palavraIndex } = licaoAtual;
 
             if (palavraIndex >= licoes[catIndex].palavras.length) {
-                // --- LIÇÃO COMPLETA ---
-                showScreen('screenSelecaoLicao'); // Volta para a tela de seleção
+                showScreen('screenSelecaoLicao'); 
                 alert('Parabéns! Você completou esta lição!');
             } else {
-                // --- PRÓXIMA PALAVRA ---
                 apresentarDesafio();
-
-                // Reinicia o timer (que foi parado em 'verificarGesto')
                 if (!aprendizagemTimer) {
                     aprendizagemTimer = setInterval(fetchGestoAprendizagem, 1200);
                 }
             }
+        }
+
+        // =================================================================================
+        // BLOCO 11: FUNÇÕES DE AUTENTICAÇÃO (LOGIN / CADASTRO)
+        // =================================================================================
+
+        function handleSignIn() {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            loginError.textContent = ''; 
+
+            if (!email || !password) {
+                loginError.textContent = 'Por favor, preencha e-mail e senha.';
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log('Login bem-sucedido:', userCredential.user.email);
+                    loginPassword.value = ''; 
+                })
+                .catch(error => {
+                    console.error('Erro no login:', error.message);
+                    loginError.textContent = 'E-mail ou senha inválidos.';
+                });
+        }
+
+        function handleSignUp() {
+            const email = loginEmail.value;
+            const password = loginPassword.value; 
+            loginError.textContent = ''; 
+
+            if (!email || !password) {
+                loginError.textContent = 'Por favor, preencha e-mail e senha.';
+                return;
+            }
+            if (password.length < 6) {
+                 loginError.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log('Conta criada:', userCredential.user.email);
+                    return createUserDocument(userCredential.user);
+                })
+                .catch(error => {
+                    console.error('Erro ao criar conta:', error.message);
+                    if (error.code === 'auth/email-already-in-use') {
+                        loginError.textContent = 'Este e-mail já está em uso.';
+                    } else {
+                        loginError.textContent = 'Erro ao criar conta.';
+                    }
+                });
+        }
+
+        function createUserDocument(user) {
+            const userRef = db.collection('users').doc(user.uid);
+
+            const userData = {
+                uid: user.uid,
+                email: user.email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(), 
+                progressoLicoes: {}
+            };
+
+            return userRef.set(userData)
+                .then(() => {
+                    console.log("Documento do usuário criado no Firestore");
+                })
+                .catch(error => {
+                    console.error("Erro ao criar documento do usuário:", error);
+                });
+        }
+
+        function handleSignOut() {
+            auth.signOut().then(() => {
+                console.log('Usuário deslogado.');
+            }).catch(error => {
+                console.error('Erro ao sair:', error);
+            });
         }
     </script>
 </body>
