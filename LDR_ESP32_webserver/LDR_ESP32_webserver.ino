@@ -47,6 +47,11 @@ const float LIMITE_MOVIMENTO_GYRO = 80.0;
 const float LIMITE_MOVIMENTO_ACEL = 5.0;
 const float LIMITE_GRAVIDADE = 7.0;
 
+unsigned long tempoInicioMovimento = 0;
+const unsigned long TEMPO_MAX_MOVIMENTO_MS = 1000; // Tempo máximo para completar o gesto (1 segundo)
+const float LIMITE_MOVIMENTO_INICIAL_GYRO = 0.4; // Limiar para detectar o *início* do movimento
+const float LIMITE_REMOVER_REPOSO_ACEL = 0.5;
+
 // --- Lógica dos LDRs ---
 struct ChaveValor {
   byte chave[5];
@@ -57,14 +62,16 @@ struct ChaveValor {
 ChaveValor Alfabeto[] = {
   {{0, 0, 0, 0, 1}, 'A'},
   {{1, 1, 1, 1, 0}, 'B'},
-  {{1, 1, 1, 1, 1}, 'C'}, // Ambíguo: C, E, O, S, Ç
-  {{0, 0, 0, 1, 0}, 'D'}, // Ambíguo: D, G, Q, X, Z
-  {{1, 1, 1, 0, 0}, 'F'}, // Ambíguo: F, T
-  {{0, 0, 1, 1, 0}, 'H'}, // Ambíguo: H, N, U, V, R
+  {{1, 1, 1, 1, 1}, 'C'}, // Ambíguo: C, O
+  {{0, 0, 0, 1, 0}, 'D'}, // Ambíguo: D, Q, X, Z, P
+  {{1, 1, 1, 0, 1}, 'F'}, // Ambíguo: F, T (O MAIS DIFICIL DE RESOLVER)
+  {{0, 0, 1, 1, 0}, 'N'}, // Ambíguo: N, U, V, R
+  {{0, 0, 1, 0, 0}, 'H'}, // Dedao sobrepoe o LDR do indicador
   {{1, 0, 0, 0, 0}, 'I'}, // Ambíguo: I, J
-  {{0, 0, 1, 1, 1}, 'K'}, // Ambíguo: K, P
-  {{0, 0, 0, 1, 1}, 'L'},
+  {{0, 0, 1, 0, 1}, 'K'}, // Ambíguo: K, // Dedao sobrepoe o LDR do indicador
+  {{0, 0, 0, 1, 1}, 'L'}, // Ambíguo: G, L
   {{0, 1, 1, 1, 0}, 'M'}, // Ambíguo: M, W
+  {{0, 0, 0, 0, 0}, 'S'}, // Ambíguo: S, E
   {{1, 0, 0, 0, 1}, 'Y'},
 };
 const int NUM_LETRAS = sizeof(Alfabeto) / sizeof(ChaveValor);
@@ -76,8 +83,56 @@ const int LDR3 = 35; // Médio
 const int LDR4 = 34; // Indicador
 const int LDR5 = 36; // Polegar (SVP)
 
+const int LDR_PINS[] = {33, 32, 35, 34, 36};
+
 // byte Saida[5]; // Substituído por estadosLDR
 const int LIMITE_LDR = 4000; // Ajuste conforme seus testes
+const int NUM_LDRS = 5;
+int ldrThresholds[NUM_LDRS]; // Limiares calculados para cada LDR
+bool ldrCalibrated = false;  // Flag para saber se a calibração foi feita
+
+void calibrarLDRs() {
+  Serial.println("\n--- INICIANDO CALIBRACAO DOS LDRs ---");
+  Serial.println("Certifique-se de que a luva esta no ambiente de uso.");
+  delay(5000);
+
+  int ldrMinValues[NUM_LDRS]; // Valores quando o dedo está flexionado (máximo cobertura, mínima luz)
+  int ldrMaxValues[NUM_LDRS]; // Valores quando o dedo está esticado (mínima cobertura, máxima luz)
+
+  // 1. CALIBRAR DEDOS ESTICADOS (Max Luz)
+  Serial.println("\n1. ESTIQUE TODOS OS DEDOS e mantenha por 3 segundos...");
+  delay(3000); // Dá tempo para o usuário esticar os dedos
+
+  for (int i = 0; i < NUM_LDRS; i++) {
+    ldrMaxValues[i] = analogRead(LDR_PINS[i]);
+    Serial.print("LDR"); Serial.print(i + 1); Serial.print(" (Esticado): "); Serial.println(ldrMaxValues[i]);
+  }
+  delay(1000);
+
+  // 2. CALIBRAR DEDOS FLEXIONADOS (Min Luz)
+  Serial.println("\n2. FLEXIONE TODOS OS DEDOS (feche a mao) e mantenha por 3 segundos...");
+  delay(3000); // Dá tempo para o usuário flexionar os dedos
+
+  for (int i = 0; i < NUM_LDRS; i++) {
+    ldrMinValues[i] = analogRead(LDR_PINS[i]);
+    Serial.print("LDR"); Serial.print(i + 1); Serial.print(" (Flexionado): "); Serial.println(ldrMinValues[i]);
+  }
+  delay(1000);
+
+  // 3. CALCULAR LIMIARES
+  Serial.println("\nCalculando limiares...");
+  for (int i = 0; i < NUM_LDRS; i++) {
+    // O limiar é o ponto médio entre os valores min e max
+    // Ou uma porcentagem, ex: ldrThresholds[i] = ldrMinValues[i] + (ldrMaxValues[i] - ldrMinValues[i]) * 0.7;
+    // O 0.7 indica que o dedo é considerado "flexionado" se a leitura estiver 70% mais perto do "flexionado"
+    // Ou simplesmente o meio:
+    ldrThresholds[i] = (ldrMinValues[i] + ldrMaxValues[i]) / 2;
+    Serial.print("LDR"); Serial.print(i + 1); Serial.print(" Limiar: "); Serial.println(ldrThresholds[i]);
+  }
+
+  ldrCalibrated = true;
+  Serial.println("\n--- CALIBRACAO DOS LDRs CONCLUIDA ---");
+}
 
 // --- FUNÇÃO DE CALIBRAÇÃO MPU ---
 void calibrarMPU() {
@@ -149,6 +204,8 @@ void setup() {
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ); // Ou MPU6050_BAND_184_HZ, MPU6050_BAND_94_HZ, MPU6050_BAND_44_HZ
   calibrarMPU();
 
+  calibrarLDRs();
+
   // --- 2. Conexão Wi-Fi ---
   Serial.println("\nIniciando Wi-Fi...");
   WiFi.begin(ssid, password);
@@ -192,7 +249,10 @@ char identificarLetraLDR() {
   }
   return '?';
 }
-
+const int BUFFER_SIZE = 20; // Armazena as últimas 20 leituras (20 * 50ms = 1 segundo de dados)
+float accelX_buffer[BUFFER_SIZE];
+float accelY_buffer[BUFFER_SIZE];
+int buffer_index = 0;
 
 // --- LOOP PRINCIPAL ---
 void loop() {
@@ -218,6 +278,11 @@ void loop() {
     float gz = g.gyro.z - offset_gz;
 
     float gyroMag = sqrt(gx * gx + gy * gy + gz * gz);
+    Serial.print("LDR1: "); Serial.print(estadosLDR[0]);
+    Serial.print("LDR2: "); Serial.print(estadosLDR[1]);
+    Serial.print("LDR3: "); Serial.print(estadosLDR[2]);
+    Serial.print("LDR4: "); Serial.print(estadosLDR[3]);
+    Serial.print("LDR5: "); Serial.print(estadosLDR[4]);
 
     // --- PRINTS DE DEBUG DO MPU6050 ---
     Serial.print("ACC (cal) X:"); Serial.print(ax, 2);
@@ -232,6 +297,10 @@ void loop() {
     Serial.print(" | Grav_Lim:"); Serial.print(LIMITE_GRAVIDADE);
     // --- FIM DOS PRINTS DE DEBUG ---
 
+    accelX_buffer[buffer_index] = ax;
+    accelY_buffer[buffer_index] = ay;
+    buffer_index = (buffer_index + 1) % BUFFER_SIZE; // Buffer circular 
+
     // 2b. MÁQUINA DE ESTADOS (DECISÃO)
     switch (letraBase) {
       case 'I': // 'I' (estático) vs 'J' (movimento)
@@ -240,8 +309,62 @@ void loop() {
         break;
 
       case 'D': // 'D' (estático) vs 'Z' (movimento)
-        if (abs(ax) > LIMITE_MOVIMENTO_ACEL) letraFinal = 'Z';
-        else letraFinal = 'D';
+        // 1. Detecta o início do movimento para 'Z'
+        if (gyroMag > LIMITE_MOVIMENTO_INICIAL_GYRO && tempoInicioMovimento == 0) {
+            tempoInicioMovimento = millis();
+            Serial.println("Movimento inicial para Z detectado! Preparando buffer.");
+            // Limpa o buffer ou inicializa para as próximas leituras relevantes
+            for(int i=0; i<BUFFER_SIZE; i++) {
+                accelX_buffer[i] = 0;
+                accelY_buffer[i] = 0;
+            }
+            buffer_index = 0; // Reinicia o index do buffer
+        }
+
+        // 2. Se há um movimento em andamento para 'Z' e dentro do tempo limite
+        if (tempoInicioMovimento > 0 && (millis() - tempoInicioMovimento < TEMPO_MAX_MOVIMENTO_MS)) {
+            // --- ANÁLISE DO PADRÃO DE MOVIMENTO PARA 'Z' COM BUFFER ---
+            // Procura por picos/vales que indicam um zigue-zague
+            // Esta é ainda uma simplificação, mas mais robusta que um único ponto.
+
+            bool zPatternDetected = false;
+            int numXChanges = 0; // Conta mudanças de direção no eixo X
+            int numYChanges = 0; // Conta mudanças de direção no eixo Y
+
+            // Itera sobre o buffer para encontrar mudanças de direção
+            for (int i = 1; i < BUFFER_SIZE; i++) {
+                // Verifica mudanças de sinal (pico-vale ou vale-pico)
+                // Com um pequeno "deadband" para evitar ruído
+                if (accelX_buffer[i] > LIMITE_REMOVER_REPOSO_ACEL && accelX_buffer[i-1] < -LIMITE_REMOVER_REPOSO_ACEL) numXChanges++;
+                if (accelX_buffer[i] < -LIMITE_REMOVER_REPOSO_ACEL && accelX_buffer[i-1] > LIMITE_REMOVER_REPOSO_ACEL) numXChanges++;
+                
+                if (accelY_buffer[i] > LIMITE_REMOVER_REPOSO_ACEL && accelY_buffer[i-1] < -LIMITE_REMOVER_REPOSO_ACEL) numYChanges++;
+                if (accelY_buffer[i] < -LIMITE_REMOVER_REPOSO_ACEL && accelY_buffer[i-1] > LIMITE_REMOVER_REPOSO_ACEL) numYChanges++;
+            }
+
+            // Um 'Z' teria pelo menos 2-3 mudanças de direção em X (horizontal)
+            // e talvez 1-2 em Y (diagonal) ou vice-versa, dependendo da orientação do sensor.
+            // Ajuste esses valores `> X` experimentalmente!
+            if (numXChanges >= 2 || numYChanges >= 2) { // Ex: 2 ou mais mudanças de direção em X ou Y
+                zPatternDetected = true;
+            }
+            Serial.print("Num X Changes: "); Serial.print(numXChanges); Serial.print(" | Num Y Changes: "); Serial.println(numYChanges);
+
+            if (zPatternDetected) {
+                letraFinal = 'Z';
+                tempoInicioMovimento = 0; // Gesto reconhecido, resetar para próximo gesto
+            } else {
+                letraFinal = 'D'; // Ainda não é 'Z'
+            }
+        } else if (tempoInicioMovimento > 0 && (millis() - tempoInicioMovimento >= TEMPO_MAX_MOVIMENTO_MS)) {
+            // Tempo excedido para completar o gesto 'Z', resetar
+            Serial.println("Tempo de gesto Z excedido. Resetando.");
+            tempoInicioMovimento = 0;
+            letraFinal = 'D'; // Volta para 'D'
+        } else {
+            // Nenhum movimento para 'Z' detectado, assume 'D'
+            letraFinal = 'D';
+        }
         break;
 
       case 'C': // 'Ç' (movimento) vs 'C', 'O', 'S', 'E' (estáticos)
