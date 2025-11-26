@@ -46,9 +46,9 @@ const int DELAY_AMOSTRAGEM = 50; // Mesmo delay usado na calibração
 
 // SEU MODELO CAPTURADO PARA A LETRA Z
 const float MODELO_Z_X[30] = {
-  -7.15, -6.53, -6.14, -4.18, -1.89, -0.12, 0.90, -1.33, -2.16, -2.61, 
-  -3.09, -3.90, -3.20, -3.36, -3.45, -3.99, -4.66, -5.11, -3.72, -3.05, 
-  -2.73, -2.97, -3.12, -3.41, -2.65, -2.86, -3.41, -2.29, -2.66, -3.01
+  -8.65, -8.54, -6.85, -8.13, -8.09, -7.84, -8.36, -7.81, -5.98, -3.41, 
+  -3.13, -3.47, -2.70, -2.25, -2.09, -2.83, -4.72, -8.86, -11.41, -8.73, 
+  -7.57, -6.56, -5.09, -3.49, -3.52, -3.58, -5.22, -5.56, -6.12, -5.50
 };
 
 const float MODELO_H_X[30] = {
@@ -58,9 +58,9 @@ const float MODELO_H_X[30] = {
 };
 
 const float MODELO_J_X[30] = {
-  -5.03, -3.76, -2.76, -2.75, -3.11, -6.17, -0.02, -4.82, -0.28, 1.99, 
-  4.89, 5.40, 6.82, 7.43, 8.46, 7.87, 8.08, 6.27, 4.91, 3.97, 
-  2.53, 2.06, 0.32, -0.64, -2.34, -1.78, -1.92, -3.61, -3.54, -3.81
+  -4.97, -4.94, -4.91, -4.90, -5.40, -6.65, -1.82, -7.71, -1.57, -2.06, 
+  1.26, 2.29, 3.91, 4.68, 6.10, 7.17, 8.37, 9.19, 9.96, 10.15, 
+  8.74, 8.06, 4.28, 1.99, 1.13, -0.01, -0.34, -0.70, -0.74, -0.24
 };
 
 const float MODELO_P_X[30] = {
@@ -70,9 +70,9 @@ const float MODELO_P_X[30] = {
 };
 
 const float MODELO_X_X[30] = {
-  -6.63, -5.94, -6.07, -6.19, -6.00, -6.28, -3.59, -3.43, -2.91, -3.06, 
-  -2.02, -1.26, -0.93, 0.92, 2.45, 3.13, 4.24, 4.32, 4.04, 3.57, 
-  3.12, 2.76, 2.92, 2.91, 2.15, 1.09, 0.77, 1.38, 1.34, 0.68
+  -9.37, -8.12, -9.11, -8.08, -5.04, -3.53, -2.00, -1.28, -1.12, 0.22,
+  -0.77, -0.38, -0.06, -0.68, -1.41, -1.41, -1.29, -1.17, -0.85, -1.48, 
+  -1.56, -1.46, -1.49, -2.14, -3.14, -2.56, -1.50, -0.83, -0.86, -1.16
 };
 
 const float MODELO_Q_X[30] = {
@@ -129,7 +129,6 @@ ChaveValor Alfabeto[] = {
   {{0, 0, 1, 1, 0}, 'U'},
   {{0, 0, 1, 0, 1}, 'H'},
   {{1, 0, 0, 0, 0}, 'I'},
-  {{0, 0, 1, 0, 1}, 'K'},
   {{0, 0, 0, 1, 1}, 'L'}, // Ambíguo: G, L
   {{0, 1, 1, 1, 0}, 'W'},
   {{0, 0, 0, 0, 0}, 'S'}, // Ambíguo: S, E, N, M, Q
@@ -230,7 +229,7 @@ void handleGesto() {
   server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   server.sendHeader("Access-Control-Allow-Headers", "*");
 
-  DynamicJsonDocument doc(128); // 128 bytes é suficiente para "letra" e array de 5 bytes
+  DynamicJsonDocument doc(256);
 
   doc["letra"] = String(letraReconhecida); // Converte char para String para o JSON
   JsonArray dedosArray = doc.createNestedArray("dedos");
@@ -484,7 +483,7 @@ void loop() {
         }
         break;
 
-      case 'C': // 'Ç' (movimento) vs 'C', 'O', 'S', 'E' (estáticos)
+      case 'C':
         if (accelMovimento > LIMITE_DISPARO_ACEL) letraFinal = 'Ç';
         else letraFinal = 'C'; // ou O
         break;
@@ -508,10 +507,10 @@ void loop() {
               Serial.println("RECONHECIDO: H");
               delay(500); 
            } else {
-            letraFinal = '?'; // Default se falhar o H e não estiver inclinado
+            letraFinal = 'K'; // Default se falhar o H e não estiver inclinado
            }
         } else {
-          letraFinal = '?'; // Default estático
+          letraFinal = 'K'; // Default estático
         }
         break;
       
@@ -572,10 +571,6 @@ void loop() {
         }
         break;
 
-      case 'K':
-        letraFinal = 'K'; 
-        break;
-
       case 'W':
         letraFinal = 'W';
         break;
@@ -609,8 +604,11 @@ void loop() {
         }
         break;
 
-      case 'S':
-
+      // --- CASO S: Base para S, E, N, M, Q ---
+      case 'S': 
+        // Não há mais verificação de movimento.
+        // O sensor envia 'S' (mão fechada) e o usuário escolhe no site.
+        letraFinal = 'S';
         break;
       default:
         letraFinal = letraBase;

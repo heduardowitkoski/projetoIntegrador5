@@ -165,8 +165,11 @@
                 
                 <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6">
                     <p id="statusTraducao" class="text-lg text-gray-500 font-semibold mb-4">Status: Desconectado</p>
-                    <div id="gestoExibido" class="text-9xl font-extrabold text-indigo-600">-</div>
-                    <div class="finger-status">
+                    <div id="areaDisplayGesto" class="flex flex-col items-center justify-center min-h-[150px] w-full">
+                        <div id="gestoExibido" class="text-9xl font-extrabold text-indigo-600">-</div>
+                        <div id="containerOpcoes" class="hidden flex-wrap justify-center gap-3 w-full"></div>
+                    </div>
+                    <div class="finger-status mt-6">
                         <div id="finger_trad_0" class="finger"><span class="finger-name">Mindinho</span></div>
                         <div id="finger_trad_1" class="finger"><span class="finger-name">Anelar</span></div>
                         <div id="finger_trad_2" class="finger"><span class="finger-name">Médio</span></div>
@@ -285,6 +288,10 @@
             document.getElementById('finger_apren_3'),
             document.getElementById('finger_apren_4')
         ];
+
+        const mapaAmbiguidades = {
+            'S': ['S', 'E', 'N', 'M', 'Q']
+        };
 
         // =================================================================================
         // BLOCO 3: ESTRUTURA DE DADOS (LIÇÕES)
@@ -561,31 +568,82 @@
 
         // Busca o gesto atual do ESP32 (Modo Tradução).
         async function fetchGestoTraducao() {
-            if (!isConnected) {
-                statusLabelTraducao.textContent = 'Status: Desconectado.';
-                gestoLabel.textContent = '!';
-                updateFingerStatus([], fingerElementsTraducao); // Limpa os dedos
-                return;
-            }
+            if (!isConnected) return;
             try {
-                const response = await fetch(`http://${espIpInput.value}/gesto`); // Usar espIpInput
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const response = await fetch(`http://${espIpInput.value}/gesto`);
+                if (!response.ok) throw new Error(`HTTP error!`);
                 
-                // <<< --- Ponto chave: Agora espera JSON --- >>>
                 const data = await response.json(); 
-                const letra = data.letra; // A letra final do ESP32
-                const dedos = data.dedos; // O array de estados dos LDRs
+                const letra = data.letra;
+                const dedos = data.dedos;
 
                 statusLabelTraducao.textContent = 'Status: Conectado'; 
-                gestoLabel.textContent = letra; 
-                updateFingerStatus(dedos, fingerElementsTraducao); // Atualiza os dedos na Tradução
+                updateFingerStatus(dedos, fingerElementsTraducao);
+
+                // --- Lógica de Opções para 'S' ---
+                const opcoes = mapaAmbiguidades[letra];
+
+                if (opcoes) {
+                    // É 'S' (Ambíguo) - Mostra botões
+                    gestoLabel.classList.add('hidden');
+                    containerOpcoes.classList.remove('hidden');
+                    containerOpcoes.classList.add('flex');
+
+                    // Só recria os botões se mudar a letra base ou for a primeira vez
+                    if (containerOpcoes.dataset.lastLetra !== letra) {
+                        containerOpcoes.innerHTML = '';
+                        opcoes.forEach(op => {
+                            const btn = document.createElement('button');
+                            btn.className = "w-14 h-14 rounded-xl bg-indigo-600 text-white text-2xl font-bold hover:bg-indigo-700 shadow-lg transform transition hover:scale-105 active:scale-95";
+                            btn.textContent = op;
+                            btn.onclick = () => adicionarLetraManual(op);
+                            containerOpcoes.appendChild(btn);
+                        });
+                        containerOpcoes.dataset.lastLetra = letra;
+                    }
+                } else {
+                    // É outra letra (Normal) - Mostra letra grande
+                    containerOpcoes.classList.add('hidden');
+                    containerOpcoes.classList.remove('flex');
+                    gestoLabel.classList.remove('hidden');
+                    gestoLabel.textContent = letra;
+                    containerOpcoes.dataset.lastLetra = ""; // Reset
+                }
 
             } catch (error) {
-                console.error("Falha na comunicação (Tradução):", error);
+                console.error("Falha (Tradução):", error);
                 statusLabelTraducao.textContent = 'Status: Erro de Conexão. Tentando...';
-                gestoLabel.textContent = '!'; 
-                updateFingerStatus([], fingerElementsTraducao); // Limpa os dedos
+                // As bolinhas ficavam cinzas porque em caso de erro, não chamávamos o updateFingerStatus
+                // Mas aqui é melhor deixar como está para indicar que parou de receber dados.
             }
+        }
+        function adicionarLetraManual(letra) {
+            console.log("Botão clicado:", letra); // Debug no console (F12)
+
+            // 1. Pega o elemento direto do HTML para garantir
+            const label = document.getElementById('palavraFormada');
+            
+            // 2. Lê o texto atual que está na tela
+            let textoAtual = label.textContent;
+
+            // 3. Adiciona a letra
+            if (textoAtual === "-" || textoAtual === "") {
+                textoAtual = letra;
+            } else {
+                textoAtual += letra;
+            }
+
+            // 4. Atualiza a tela e a variável global
+            label.textContent = textoAtual;
+            palavraAtualTraducao = textoAtual;
+
+            // 5. Feedback Visual: Pisca a cor do texto para verde rápido
+            label.classList.remove('text-gray-800');
+            label.classList.add('text-green-600');
+            setTimeout(() => {
+                label.classList.remove('text-green-600');
+                label.classList.add('text-gray-800');
+            }, 200);
         }
 
         // Limpa a palavra formada no Modo Tradução.
@@ -596,14 +654,14 @@
 
         // Timer que pega a letra exibida e a adiciona à palavra.
         function concatenarLetra() {
+            // Se as opções estiverem visíveis (usuário escolhendo S), NÃO concatena automaticamente
+            if (!containerOpcoes.classList.contains('hidden')) return;
+
             const letra = gestoLabel.textContent;
             if (letra === '-' || letra === '!' || letra === '?') return; 
 
-            if (palavraAtualTraducao === "-") {
-                palavraAtualTraducao = letra;
-            } else {
-                palavraAtualTraducao += letra;
-            }
+            if (palavraAtualTraducao === "-") palavraAtualTraducao = letra;
+            else palavraAtualTraducao += letra;
             palavraLabel.textContent = palavraAtualTraducao;
         }
 
@@ -709,8 +767,11 @@
             const { catIndex, palavraIndex, letraIndex } = licaoAtual;
             const palavra = licoes[catIndex].palavras[palavraIndex];
             const letraCorreta = palavra[letraIndex];
+    // Se o desafio for M, N, E, Q e o usuário fizer S (que é a base), aceita.
+            let aceito = (letraRecebida === letraCorreta);
+            if (letraRecebida === 'S' && ['E','N','M','Q'].includes(letraCorreta)) aceito = true;
 
-            if (letraRecebida === letraCorreta) {
+            if (aceito) {
                 // --- ACERTOU ---
                 acertouLetraAtual = true; // Trava a verificação.
                 feedbackLabel.textContent = 'Correto!';
