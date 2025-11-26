@@ -36,21 +36,82 @@ WebServer server(80);
 char letraReconhecida = '?';
 byte estadosLDR[5] = {0, 0, 0, 0, 0}; // Para armazenar o estado atual dos LDRs
 
+// --- DEFINIÇÕES DE GESTOS (TEMPLATE MATCHING) ---
+const int TAMANHO_GESTO = 30; // Ajustado para os seus 30 valores
+const float LIMITE_DISPARO_ACEL = 9.0; // Valor solicitado para iniciar leitura
+const float TOLERANCIA_GESTO_Z = 3.0; // Se o erro for menor que isso, é Z. 
+const float TOLERANCIA_GESTO_H = 1.5; // Se o erro for menor que isso, é H.
+const float TOLERANCIA_GESTO_J = 4.25; // Se o erro for menor que isso, é J 
+const int DELAY_AMOSTRAGEM = 50; // Mesmo delay usado na calibração
+
+// SEU MODELO CAPTURADO PARA A LETRA Z
+const float MODELO_Z_X[30] = {
+  -7.15, -6.53, -6.14, -4.18, -1.89, -0.12, 0.90, -1.33, -2.16, -2.61, 
+  -3.09, -3.90, -3.20, -3.36, -3.45, -3.99, -4.66, -5.11, -3.72, -3.05, 
+  -2.73, -2.97, -3.12, -3.41, -2.65, -2.86, -3.41, -2.29, -2.66, -3.01
+};
+
+const float MODELO_H_X[30] = {
+  -6.74, -6.01, -6.28, -5.49, -5.86, -5.76, -6.15, -5.94, -6.37, -5.92, 
+  -6.85, -5.77, -4.70, -3.29, -1.76, -3.32, -1.16, -3.13, -4.70, -5.13, 
+  -4.69, -5.67, -5.63, -5.40, -5.02, -4.48, -4.70, -3.81, -3.53, -3.80
+};
+
+const float MODELO_J_X[30] = {
+  -5.03, -3.76, -2.76, -2.75, -3.11, -6.17, -0.02, -4.82, -0.28, 1.99, 
+  4.89, 5.40, 6.82, 7.43, 8.46, 7.87, 8.08, 6.27, 4.91, 3.97, 
+  2.53, 2.06, 0.32, -0.64, -2.34, -1.78, -1.92, -3.61, -3.54, -3.81
+};
+
+const float MODELO_P_X[30] = {
+  1.08, 2.20, 3.37, 4.36, 4.33, 5.72, 6.05, 7.13, 7.35, 9.09, 
+  9.84, 10.17, 10.38, 10.50, 10.95, 11.13, 11.46, 12.58, 13.25, 13.00, 
+  13.89, 13.90, 13.34, 13.44, 13.65, 13.49, 12.61, 12.99, 13.30, 13.01
+};
+
+const float MODELO_X_X[30] = {
+  -6.63, -5.94, -6.07, -6.19, -6.00, -6.28, -3.59, -3.43, -2.91, -3.06, 
+  -2.02, -1.26, -0.93, 0.92, 2.45, 3.13, 4.24, 4.32, 4.04, 3.57, 
+  3.12, 2.76, 2.92, 2.91, 2.15, 1.09, 0.77, 1.38, 1.34, 0.68
+};
+
+const float MODELO_Q_X[30] = {
+  -6.82, -6.20, -5.18, -4.87, -5.43, -6.48, -8.38, -5.33, -3.03, -3.94, 
+  -2.07, -0.76, -0.27, 0.28, 0.59, 1.40, 2.36, 3.10, 3.76, 4.67, 
+  5.16, 5.03, 4.84, 4.93, 4.84, 5.08, 4.90, 4.62, 4.47, 4.72
+};
+
+const float MODELO_G_X[30] = {
+  -5.03, -3.76, -2.76, -2.75, -3.11, -6.17, -0.02, -4.82, -0.28, 1.99, 
+  4.89, 5.40, 6.82, 7.43, 8.46, 7.87, 8.08, 6.27, 4.91, 3.97, 
+  2.53, 2.06, 0.32, -0.64, -2.34, -1.78, -1.92, -3.61, -3.54, -3.81
+};
+
+const float MODELO_V_X[30] = {
+  -6.54, -6.45, -6.58, -6.92, -6.93, -7.46, -5.92, -5.40, -4.66, -4.88, 
+  -4.66, -3.73, -3.15, -0.79, -0.13, -0.36, -0.64, -0.06, -0.82, -0.12, 
+  -0.02, -3.38, -4.48, -6.00, -5.84, -5.41, -5.77, -6.90, -7.16, -6.50
+};
+
+const float MODELO_R_X[30] = {
+  -6.31, -6.18, -5.65, -6.24, -5.35, -6.12, -6.46, -5.98, -6.33, -5.86, 
+  -4.68, -6.47, -2.01, -5.59, -2.39, -3.07, -0.63, -0.67, 1.13, 1.64, 
+  2.50, 2.75, 2.87, 2.97, 3.27, 2.24, 1.38, 0.02, -1.60, -2.94
+};
+
+const float MODELO_T_X[30] = {
+  -6.42, -5.35, -4.46, -4.82, -4.32, -5.20, -4.91, -3.98, -3.97, -2.16, 
+  -1.85, -1.65, -0.01, 1.64, 2.48, 3.40, 4.41, 6.90, 6.00, 5.40, 
+  4.76, 4.50, 4.48, 4.19, 3.30, 4.39, 0.20, -1.65, -4.33, -4.20
+};
+// --- Outros Limites ---
+const float LIMITE_MOVIMENTO_GYRO = 80.0; // Mantido para I/J e C/Ç
+const float LIMITE_GRAVIDADE = 7.0; // Para H/U/V
+
 // --- Configuração do MPU6050 ---
 Adafruit_MPU6050 mpu;
 float offset_ax = 0.0, offset_ay = 0.0, offset_az = 0.0;
 float offset_gx = 0.0, offset_gy = 0.0, offset_gz = 0.0;
-
-// --- DEFINIÇÕES DE LIMITE (Thresholds) ---
-// Ajuste estes valores com testes!
-const float LIMITE_MOVIMENTO_GYRO = 80.0;
-const float LIMITE_MOVIMENTO_ACEL = 5.0;
-const float LIMITE_GRAVIDADE = 7.0;
-
-unsigned long tempoInicioMovimento = 0;
-const unsigned long TEMPO_MAX_MOVIMENTO_MS = 1000; // Tempo máximo para completar o gesto (1 segundo)
-const float LIMITE_MOVIMENTO_INICIAL_GYRO = 0.4; // Limiar para detectar o *início* do movimento
-const float LIMITE_REMOVER_REPOSO_ACEL = 0.5;
 
 // --- Lógica dos LDRs ---
 struct ChaveValor {
@@ -62,28 +123,28 @@ struct ChaveValor {
 ChaveValor Alfabeto[] = {
   {{0, 0, 0, 0, 1}, 'A'},
   {{1, 1, 1, 1, 0}, 'B'},
-  {{1, 1, 1, 1, 1}, 'C'}, // Ambíguo: C, O
-  {{0, 0, 0, 1, 0}, 'D'}, // Ambíguo: D, Q, X, Z, P
-  {{1, 1, 1, 0, 1}, 'F'}, // Ambíguo: F, T (O MAIS DIFICIL DE RESOLVER)
-  {{0, 0, 1, 1, 0}, 'N'}, // Ambíguo: N, U, V, R
-  {{0, 0, 1, 0, 0}, 'H'}, // Dedao sobrepoe o LDR do indicador
-  {{1, 0, 0, 0, 0}, 'I'}, // Ambíguo: I, J
-  {{0, 0, 1, 0, 1}, 'K'}, // Ambíguo: K, // Dedao sobrepoe o LDR do indicador
+  {{1, 1, 1, 1, 1}, 'C'},
+  {{0, 0, 0, 1, 0}, 'D'},
+  {{1, 1, 1, 0, 1}, 'F'}, // Ambíguo: F, T
+  {{0, 0, 1, 1, 0}, 'U'},
+  {{0, 0, 1, 0, 1}, 'H'},
+  {{1, 0, 0, 0, 0}, 'I'},
+  {{0, 0, 1, 0, 1}, 'K'},
   {{0, 0, 0, 1, 1}, 'L'}, // Ambíguo: G, L
-  {{0, 1, 1, 1, 0}, 'M'}, // Ambíguo: M, W
-  {{0, 0, 0, 0, 0}, 'S'}, // Ambíguo: S, E
+  {{0, 1, 1, 1, 0}, 'W'},
+  {{0, 0, 0, 0, 0}, 'S'}, // Ambíguo: S, E, N, M, Q
   {{1, 0, 0, 0, 1}, 'Y'},
 };
 const int NUM_LETRAS = sizeof(Alfabeto) / sizeof(ChaveValor);
 
 // Pinos LDR
-const int LDR1 = 33; // Mindinho
-const int LDR2 = 32; // Anelar
-const int LDR3 = 35; // Médio
-const int LDR4 = 34; // Indicador
-const int LDR5 = 36; // Polegar (SVP)
+const int LDR1 = 32; // Mindinho
+const int LDR2 = 33; // Anelar
+const int LDR3 = 36; // Médio 
+const int LDR4 = 35; // Indicador 
+const int LDR5 = 34; // Polegar (SVP) 
 
-const int LDR_PINS[] = {33, 32, 35, 34, 36};
+const int LDR_PINS[] = {32, 33, 36, 35, 34};
 
 // byte Saida[5]; // Substituído por estadosLDR
 const int LIMITE_LDR = 4000; // Ajuste conforme seus testes
@@ -153,7 +214,7 @@ void calibrarMPU() {
   }
   offset_ax /= num_leituras;
   offset_ay /= num_leituras;
-  offset_az = (offset_az / num_leituras) - 9.81; // Subtrai a gravidade
+  offset_az /= num_leituras;
   offset_gx /= num_leituras;
   offset_gy /= num_leituras;
   offset_gz /= num_leituras;
@@ -249,6 +310,32 @@ char identificarLetraLDR() {
   }
   return '?';
 }
+
+float compararGesto(float* bufferCapturado, const float* modelo) {
+  float mediaCaptura = 0.0;
+  float mediaModelo = 0.0;
+
+  // 1. Calcula a média dos valores para descobrir o "centro" (offset)
+  for (int i = 0; i < TAMANHO_GESTO; i++) {
+    mediaCaptura += bufferCapturado[i];
+    mediaModelo += modelo[i];
+  }
+  mediaCaptura /= TAMANHO_GESTO;
+  mediaModelo /= TAMANHO_GESTO;
+
+  float erroTotal = 0.0;
+  for (int i = 0; i < TAMANHO_GESTO; i++) {
+    // 2. Compara removendo o offset (Centraliza as duas ondas no zero)
+    // Isso anula o erro causado se a mão estiver inclinada diferente da calibração
+    float valorCapturadoNormalizado = bufferCapturado[i] - mediaCaptura;
+    float valorModeloNormalizado = modelo[i] - mediaModelo;
+    
+    erroTotal += abs(valorCapturadoNormalizado - valorModeloNormalizado);
+  }
+  
+  return erroTotal / TAMANHO_GESTO;
+}
+
 const int BUFFER_SIZE = 20; // Armazena as últimas 20 leituras (20 * 50ms = 1 segundo de dados)
 float accelX_buffer[BUFFER_SIZE];
 float accelY_buffer[BUFFER_SIZE];
@@ -278,6 +365,7 @@ void loop() {
     float gz = g.gyro.z - offset_gz;
 
     float gyroMag = sqrt(gx * gx + gy * gy + gz * gz);
+    float accelMovimento = sqrt(ax * ax + ay * ay);
     Serial.print("LDR1: "); Serial.print(estadosLDR[0]);
     Serial.print("LDR2: "); Serial.print(estadosLDR[1]);
     Serial.print("LDR3: "); Serial.print(estadosLDR[2]);
@@ -293,10 +381,10 @@ void loop() {
     Serial.print(" Z:"); Serial.print(gz, 2);
     Serial.print(" | GyroMag:"); Serial.print(gyroMag, 2);
     Serial.print(" | G_Lim:"); Serial.print(LIMITE_MOVIMENTO_GYRO);
-    Serial.print(" | A_Lim:"); Serial.print(LIMITE_MOVIMENTO_ACEL);
+    Serial.print(" | A_Lim:"); Serial.print(LIMITE_DISPARO_ACEL);
     Serial.print(" | Grav_Lim:"); Serial.print(LIMITE_GRAVIDADE);
     // --- FIM DOS PRINTS DE DEBUG ---
-
+    float bufferCaptura[TAMANHO_GESTO];
     accelX_buffer[buffer_index] = ax;
     accelY_buffer[buffer_index] = ay;
     buffer_index = (buffer_index + 1) % BUFFER_SIZE; // Buffer circular 
@@ -304,106 +392,227 @@ void loop() {
     // 2b. MÁQUINA DE ESTADOS (DECISÃO)
     switch (letraBase) {
       case 'I': // 'I' (estático) vs 'J' (movimento)
-        if (gyroMag > LIMITE_MOVIMENTO_GYRO) letraFinal = 'J';
-        else letraFinal = 'I';
+        if (accelMovimento > LIMITE_DISPARO_ACEL) {
+           Serial.println(">>> Detectado movimento para J! Gravando...");
+           float bufferCaptura[TAMANHO_GESTO];
+           
+           for(int k=0; k < TAMANHO_GESTO; k++) {
+              mpu.getEvent(&a, &g, &temp);
+              bufferCaptura[k] = a.acceleration.x - offset_ax; 
+              delay(DELAY_AMOSTRAGEM); 
+           }
+           float erro = compararGesto(bufferCaptura, MODELO_J_X);
+           Serial.print("Erro J: "); Serial.println(erro);
+
+           if (erro < TOLERANCIA_GESTO_J) {
+              letraFinal = 'J';
+              Serial.println("RECONHECIDO: J");
+              delay(500); 
+           } else {
+              letraFinal = 'I'; 
+              Serial.println("Falha no J. Mantendo I.");
+           }
+        } else {
+           letraFinal = 'I';
+        }
         break;
 
-      case 'D': // 'D' (estático) vs 'Z' (movimento)
-        // 1. Detecta o início do movimento para 'Z'
-        if (gyroMag > LIMITE_MOVIMENTO_INICIAL_GYRO && tempoInicioMovimento == 0) {
-            tempoInicioMovimento = millis();
-            Serial.println("Movimento inicial para Z detectado! Preparando buffer.");
-            // Limpa o buffer ou inicializa para as próximas leituras relevantes
-            for(int i=0; i<BUFFER_SIZE; i++) {
-                accelX_buffer[i] = 0;
-                accelY_buffer[i] = 0;
-            }
-            buffer_index = 0; // Reinicia o index do buffer
-        }
+      case 'D': 
+        if (accelMovimento > LIMITE_DISPARO_ACEL) {
+           Serial.println(">>> Movimento detectado (D/Z/X/P/Q)! Gravando...");
+           
+           // 1. Captura o movimento
+           for(int k=0; k < TAMANHO_GESTO; k++) {
+              mpu.getEvent(&a, &g, &temp);
+              bufferCaptura[k] = a.acceleration.x - offset_ax; 
+              delay(DELAY_AMOSTRAGEM); 
+           }
 
-        // 2. Se há um movimento em andamento para 'Z' e dentro do tempo limite
-        if (tempoInicioMovimento > 0 && (millis() - tempoInicioMovimento < TEMPO_MAX_MOVIMENTO_MS)) {
-            // --- ANÁLISE DO PADRÃO DE MOVIMENTO PARA 'Z' COM BUFFER ---
-            // Procura por picos/vales que indicam um zigue-zague
-            // Esta é ainda uma simplificação, mas mais robusta que um único ponto.
+           // 2. Compara com TODOS os modelos possíveis para essa configuração de mão
+           float erroZ = compararGesto(bufferCaptura, MODELO_Z_X);
+           float erroX = compararGesto(bufferCaptura, MODELO_X_X);
+           float erroP = compararGesto(bufferCaptura, MODELO_P_X);
+           float erroQ = compararGesto(bufferCaptura, MODELO_Q_X);
 
-            bool zPatternDetected = false;
-            int numXChanges = 0; // Conta mudanças de direção no eixo X
-            int numYChanges = 0; // Conta mudanças de direção no eixo Y
+           Serial.print("Erros -> Z: "); Serial.print(erroZ);
+           Serial.print(" | X: "); Serial.print(erroX);
+           Serial.print(" | P: "); Serial.print(erroP);
+           Serial.print(" | Q: "); Serial.println(erroQ);
 
-            // Itera sobre o buffer para encontrar mudanças de direção
-            for (int i = 1; i < BUFFER_SIZE; i++) {
-                // Verifica mudanças de sinal (pico-vale ou vale-pico)
-                // Com um pequeno "deadband" para evitar ruído
-                if (accelX_buffer[i] > LIMITE_REMOVER_REPOSO_ACEL && accelX_buffer[i-1] < -LIMITE_REMOVER_REPOSO_ACEL) numXChanges++;
-                if (accelX_buffer[i] < -LIMITE_REMOVER_REPOSO_ACEL && accelX_buffer[i-1] > LIMITE_REMOVER_REPOSO_ACEL) numXChanges++;
-                
-                if (accelY_buffer[i] > LIMITE_REMOVER_REPOSO_ACEL && accelY_buffer[i-1] < -LIMITE_REMOVER_REPOSO_ACEL) numYChanges++;
-                if (accelY_buffer[i] < -LIMITE_REMOVER_REPOSO_ACEL && accelY_buffer[i-1] > LIMITE_REMOVER_REPOSO_ACEL) numYChanges++;
-            }
+           // 3. Define tolerâncias (Ajuste conforme necessário)
+           float tolZ = TOLERANCIA_GESTO_Z; 
+           float tolX = 4.0; // Tolerância para X
+           float tolP = 4.0; // Tolerância para P
+           float tolQ = 4.0; // Tolerância para Q
 
-            // Um 'Z' teria pelo menos 2-3 mudanças de direção em X (horizontal)
-            // e talvez 1-2 em Y (diagonal) ou vice-versa, dependendo da orientação do sensor.
-            // Ajuste esses valores `> X` experimentalmente!
-            if (numXChanges >= 2 || numYChanges >= 2) { // Ex: 2 ou mais mudanças de direção em X ou Y
-                zPatternDetected = true;
-            }
-            Serial.print("Num X Changes: "); Serial.print(numXChanges); Serial.print(" | Num Y Changes: "); Serial.println(numYChanges);
+           // 4. Lógica do Vencedor (Quem tem o menor erro E está dentro da tolerância?)
+           char vencedor = 'D'; // Padrão se ninguém ganhar
+           float menorErro = 100.0;
 
-            if (zPatternDetected) {
-                letraFinal = 'Z';
-                tempoInicioMovimento = 0; // Gesto reconhecido, resetar para próximo gesto
-            } else {
-                letraFinal = 'D'; // Ainda não é 'Z'
-            }
-        } else if (tempoInicioMovimento > 0 && (millis() - tempoInicioMovimento >= TEMPO_MAX_MOVIMENTO_MS)) {
-            // Tempo excedido para completar o gesto 'Z', resetar
-            Serial.println("Tempo de gesto Z excedido. Resetando.");
-            tempoInicioMovimento = 0;
-            letraFinal = 'D'; // Volta para 'D'
+           // Testar Z
+           if (erroZ < tolZ && erroZ < menorErro) {
+             menorErro = erroZ;
+             vencedor = 'Z';
+           }
+           // Testar X
+           if (erroX < tolX && erroX < menorErro) {
+             menorErro = erroX;
+             vencedor = 'X';
+           }
+           // Testar P
+           if (erroP < tolP && erroP < menorErro) {
+             menorErro = erroP;
+             vencedor = 'P';
+           }
+           // Testar Q
+           if (erroQ < tolQ && erroQ < menorErro) {
+             menorErro = erroQ;
+             vencedor = 'Q';
+           }
+
+           letraFinal = vencedor;
+           
+           if (letraFinal != 'D') {
+              Serial.print(">>> VENCEDOR RECONHECIDO: "); Serial.println(letraFinal);
+              delay(500); // Pausa para não repetir leitura imediata
+           } else {
+              Serial.println(">>> Movimento não reconhecido. Mantendo D.");
+           }
+
         } else {
-            // Nenhum movimento para 'Z' detectado, assume 'D'
-            letraFinal = 'D';
+           letraFinal = 'D'; // Sem movimento = D
         }
         break;
 
       case 'C': // 'Ç' (movimento) vs 'C', 'O', 'S', 'E' (estáticos)
-        if (gyroMag > LIMITE_MOVIMENTO_GYRO) letraFinal = 'Ç';
-        else letraFinal = 'C'; // Default para estáticos
+        if (accelMovimento > LIMITE_DISPARO_ACEL) letraFinal = 'Ç';
+        else letraFinal = 'C'; // ou O
         break;
 
-      case 'H': // 'H' (horizontal) vs 'U'/'V' (vertical)
-        // Você precisará ajustar essa lógica de acordo com o que 'U' e 'V' significam
-        // para o seu sensor e como eles se diferenciam de 'H'.
-        // Exemplo: se 'U' e 'V' são mais "verticais", 'H' é "horizontal".
-        // Pode ser necessário verificar o sinal de ay ou az e thresholds diferentes.
-        // Para uma diferenciação mais robusta entre U e V, você pode precisar
-        // analisar a variação de um eixo específico ou a orientação da mão.
-        if (abs(ay) > LIMITE_GRAVIDADE && ay < 0) letraFinal = 'U'; // Ex: mão apontando para cima
-        else if (abs(ay) > LIMITE_GRAVIDADE && ay > 0) letraFinal = 'V'; // Ex: mão apontando para baixo
-        else letraFinal = 'H'; // Default se não for vertical o suficiente
+      case 'H': // 'H' (movimento)
+        // 1. Tenta verificar se é o gesto H pelo movimento
+        if (accelMovimento > LIMITE_DISPARO_ACEL) {
+           Serial.println(">>> Detectado movimento para H! Gravando...");
+           float bufferCaptura[TAMANHO_GESTO];
+           
+           for(int k=0; k < TAMANHO_GESTO; k++) {
+              mpu.getEvent(&a, &g, &temp);
+              bufferCaptura[k] = a.acceleration.x - offset_ax; 
+              delay(DELAY_AMOSTRAGEM); 
+           }
+           float erro = compararGesto(bufferCaptura, MODELO_H_X);
+           Serial.print("Erro H: "); Serial.println(erro);
+
+           if (erro < TOLERANCIA_GESTO_H) {
+              letraFinal = 'H';
+              Serial.println("RECONHECIDO: H");
+              delay(500); 
+           } else {
+            letraFinal = '?'; // Default se falhar o H e não estiver inclinado
+           }
+        } else {
+          letraFinal = '?'; // Default estático
+        }
         break;
       
-      // Adicione mais 'case' aqui para F/T, K/P, M/W, etc.
-      case 'F': // 'F' vs 'T'
-        // Exemplo: se 'T' envolve o polegar mais escondido ou um movimento específico
-        // Mantenha como 'F' se não houver movimento distintivo
-        letraFinal = 'F'; 
+      case 'U': 
+        if (accelMovimento > LIMITE_DISPARO_ACEL) {
+           Serial.println(">>> Movimento V/R detectado! Gravando...");
+           for(int k=0; k < TAMANHO_GESTO; k++) {
+              mpu.getEvent(&a, &g, &temp);
+              bufferCaptura[k] = a.acceleration.x - offset_ax; 
+              delay(DELAY_AMOSTRAGEM); 
+           }
+           
+           float erroV = compararGesto(bufferCaptura, MODELO_V_X);
+           float erroR = compararGesto(bufferCaptura, MODELO_R_X);
+           Serial.print(" E_V:"); Serial.print(erroV);
+           Serial.print(" E_R:"); Serial.println(erroR);
+
+           float menorErro = 100.0;
+           char vencedor = 'U'; // Default se falhar o reconhecimento
+
+           if (erroV < 5 && erroV > 4 && erroV < menorErro) { menorErro = erroV; vencedor = 'V'; }
+           if (erroR < 2 && erroR < menorErro) { menorErro = erroR; vencedor = 'R'; }
+
+           letraFinal = vencedor;
+           Serial.print("Vencedor: "); Serial.println(letraFinal);
+           delay(500);
+        } else {
+           letraFinal = 'U'; // Estático assume-se U
+        }
+        break;
+      
+      case 'F':
+        // A letra base é F. Se houver movimento específico, pode ser T.
+        if (accelMovimento > LIMITE_DISPARO_ACEL) {
+           Serial.println(">>> Movimento T detectado! Gravando...");
+           
+           // 1. Captura
+           for(int k=0; k < TAMANHO_GESTO; k++) {
+              mpu.getEvent(&a, &g, &temp);
+              bufferCaptura[k] = a.acceleration.x - offset_ax; 
+              delay(DELAY_AMOSTRAGEM); 
+           }
+           
+           // 2. Compara com modelo T
+           float erroT = compararGesto(bufferCaptura, MODELO_T_X);
+           Serial.print("Erro T: "); Serial.println(erroT);
+
+           if (erroT < 4.5) {
+              letraFinal = 'T';
+              Serial.println("Reconhecido: T");
+              delay(500); 
+           } else {
+              letraFinal = 'F'; // Moveu, mas não parece T, mantém F
+              Serial.println("Movimento não é T. Mantendo F.");
+           }
+        } else {
+           letraFinal = 'F'; // Estático
+        }
         break;
 
-      case 'K': // 'K' vs 'P'
-        // Exemplo: 'P' geralmente tem a mão virada para baixo, 'K' mais reta
-        // Verifique a orientação do eixo Z (roll) ou X (pitch)
+      case 'K':
         letraFinal = 'K'; 
         break;
 
-      case 'M': // 'M' vs 'W'
-        // 'M' e 'W' podem ser difíceis apenas com LDRs, talvez o MPU ajude com pequenos movimentos
-        letraFinal = 'M';
+      case 'W':
+        letraFinal = 'W';
         break;
 
+      case 'L':
+        // A letra base é F. Se houver movimento específico, pode ser T.
+        if (accelMovimento > LIMITE_DISPARO_ACEL) {
+           Serial.println(">>> Movimento T detectado! Gravando...");
+           
+           // 1. Captura
+           for(int k=0; k < TAMANHO_GESTO; k++) {
+              mpu.getEvent(&a, &g, &temp);
+              bufferCaptura[k] = a.acceleration.x - offset_ax; 
+              delay(DELAY_AMOSTRAGEM); 
+           }
+           
+           // 2. Compara com modelo T
+           float erroT = compararGesto(bufferCaptura, MODELO_T_X);
+           Serial.print("Erro T: "); Serial.println(erroT);
+
+           if (erroT < 4.5) {
+              letraFinal = 'G';
+              Serial.println("Reconhecido: T");
+              delay(500); 
+           } else {
+              letraFinal = 'L'; // Moveu, mas não parece T, mantém F
+              Serial.println("Movimento não é T. Mantendo F.");
+           }
+        } else {
+           letraFinal = 'L'; // Estático
+        }
+        break;
+
+      case 'S':
+
+        break;
       default:
-        // Se a letra não é ambígua (A, B, L...), usa a letraBase
         letraFinal = letraBase;
         break;
     }
