@@ -109,8 +109,10 @@
                     <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
                     <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Lições</h2>
                 </div>
-                <p class="text-center text-gray-600 mb-6">Escolha uma categoria para começar a praticar.</p>
-                <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2"></div>
+                <p class="text-center text-gray-600 mb-6">Escolha uma categoria para ver seu recorde.</p>
+                <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                    <div class="text-center text-gray-400 mt-10">Carregando recordes...</div>
+                </div>
             </div>
 
             <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
@@ -192,15 +194,9 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // IMPORTANTE: Substitua pelo link RAW do seu GitHub
+        // Links de Recursos
         const BASE_URL_IMAGENS = "https://raw.githubusercontent.com/heduardowitkoski/projetoIntegrador5/main/gestos/"; 
-
-	// NOVO: Link para os áudios
-	const BASE_URL_AUDIO = "https://raw.githubusercontent.com/heduardowitkoski/projetoIntegrador5/main/audios/";
-
-
-	
-		
+        const BASE_URL_AUDIO = "https://raw.githubusercontent.com/heduardowitkoski/projetoIntegrador5/main/audios/";
 
         // Referências DOM
         const loginScreen = document.getElementById('screenLogin');
@@ -215,7 +211,7 @@
         const statusConexao = document.getElementById('statusConexao');
         const statusLabelTraducao = document.getElementById('statusTraducao');
         const gestoLabel = document.getElementById('gestoExibido');
-        const containerOpcoes = document.getElementById('containerOpcoes'); // Corrigido: referência adicionada
+        const containerOpcoes = document.getElementById('containerOpcoes');
         const palavraLabel = document.getElementById('palavraFormada');
         const licoesContainer = document.getElementById('licoesContainer');
         const categoriaTitulo = document.getElementById('categoriaTitulo');
@@ -263,6 +259,8 @@
         let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 };
         let acertouLetraAtual = false;
 
+        let tempoInicioLicao = 0;
+
         // AUTH
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -286,30 +284,60 @@
             gerarCartoesLicao();
         }
 
-	// NOVO: Função para tocar o som
-	function tocarAudio(letra) {
-    	    if (!letra || letra === '-' || letra === '?') return;
+        function tocarAudio(letra) {
+            if (!letra || letra === '-' || letra === '?') return;
+            let nomeArquivo = letra;
+            if (letra === 'Ç') nomeArquivo = 'CEDILHA'; 
+            const audio = new Audio(`${BASE_URL_AUDIO}${nomeArquivo}.mp3`);
+            audio.play().catch(e => console.log("Erro ao tocar áudio:", e));
+        }
 
-    	    let nomeArquivo = letra;
-    	    // Tratamento especial para Ç (se o arquivo for CEDILHA.mp3)
-    	    if (letra === 'Ç') nomeArquivo = 'CEDILHA'; 
+        // [IMPORTANTE] Função atualizada para ser assíncrona e buscar o melhor tempo
+        async function gerarCartoesLicao() {
+            const user = auth.currentUser;
+            licoesContainer.innerHTML = '<div class="text-center text-gray-500">Atualizando recordes...</div>';
+            
+            let htmlFinal = '';
 
-    	    // Cria e toca o áudio
-    	    const audio = new Audio(`${BASE_URL_AUDIO}${nomeArquivo}.mp3`);
-    	    audio.play().catch(e => console.log("Erro ao tocar áudio (navegador bloqueou ou arquivo não existe):", e));
-	}
+            // Usamos um loop for..of para processar de forma assíncrona
+            for (const [index, licao] of licoes.entries()) {
+                let melhorTempo = "--:--";
+                
+                if (user) {
+                    try {
+                        // Busca o MENOR tempo (recorde) para esta categoria e este usuário
+                        const snapshot = await db.collection('progresso_usuarios')
+                            .where('uid', '==', user.uid)
+                            .where('categoria', '==', licao.categoria)
+                            .orderBy('tempo_ms', 'asc') // Ordena do menor para o maior (mais rápido)
+                            .limit(1) // Pega apenas o primeiro (o melhor)
+                            .get();
 
-        function generatingCartoesLicao() { /* Alias para manter consistência se chamado */ }
-        function gerarCartoesLicao() {
-            licoesContainer.innerHTML = '';
-            licoes.forEach((licao, index) => {
-                licoesContainer.innerHTML += `
-                    <div onclick="iniciarLicao(${index})" class="card-hover flex items-center p-5 rounded-2xl shadow-sm cursor-pointer text-white ${licao.cor}">
+                        if (!snapshot.empty) {
+                            melhorTempo = snapshot.docs[0].data().tempo_formatado;
+                        }
+                    } catch (error) {
+                        console.log("Erro ao buscar recorde (provavelmente falta índice):", error);
+                        // Se der erro de índice, o link aparecerá no console do navegador
+                    }
+                }
+
+                htmlFinal += `
+                    <div onclick="iniciarLicao(${index})" class="card-hover relative flex items-center p-5 rounded-2xl shadow-sm cursor-pointer text-white ${licao.cor}">
                         <div class="mr-4">${licao.icone}</div>
-                        <div><h3 class="font-bold text-lg">${licao.categoria}</h3><p class="text-sm opacity-80">${licao.palavras.join(', ')}</p></div>
-                        <span class="ml-auto font-bold">&rarr;</span>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">${licao.categoria}</h3>
+                            <p class="text-sm opacity-80 mb-1">${licao.palavras.join(', ')}</p>
+                            
+                            <div class="inline-block bg-black/20 px-2 py-1 rounded text-xs font-semibold backdrop-blur-md">
+                                🏆 Melhor: ${melhorTempo}
+                            </div>
+                        </div>
+                        <span class="ml-auto font-bold text-2xl">&rarr;</span>
                     </div>`;
-            });
+            }
+
+            licoesContainer.innerHTML = htmlFinal;
         }
 
         function showScreen(screenId) {
@@ -333,9 +361,16 @@
                     statusLabelTraducao.textContent = 'Status: Desconectado';
                     updateFingerStatus([], fingerElementsTraducao);
                 }
-            } else if ((screenId === 'screenAprendizagem' || screenId === 'screenSelecaoLicao') && !isConnected) {
+            } else if ((screenId === 'screenAprendizagem') && !isConnected) {
                 alert("Conecte-se ao ESP32 primeiro.");
                 showScreen('screenHome');
+            } else if (screenId === 'screenSelecaoLicao') {
+                // Atualiza os recordes toda vez que entra na tela de seleção
+                gerarCartoesLicao();
+                if (!isConnected) {
+                     alert("Conecte-se ao ESP32 primeiro.");
+                     showScreen('screenHome');
+                }
             } else if (screenId === 'screenHome' && isConnected) {
                 homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000);
                 checkHomeConnectionStatus();
@@ -424,7 +459,7 @@
 
         function adicionarLetraManual(letra) {
             tocarAudio(letra);
-	    const label = document.getElementById('palavraFormada');
+            const label = document.getElementById('palavraFormada');
             let texto = label.textContent === "-" ? "" : label.textContent;
             texto += letra;
             label.textContent = texto;
@@ -442,7 +477,7 @@
             if (!containerOpcoes.classList.contains('hidden')) return;
             const letra = gestoLabel.textContent;
             if (letra === '-' || letra === '?' || letra.length > 1) return;
-	    tocarAudio(letra);
+            tocarAudio(letra);
             if (palavraAtualTraducao === "-") palavraAtualTraducao = letra;
             else palavraAtualTraducao += letra;
             palavraLabel.textContent = palavraAtualTraducao;
@@ -451,7 +486,12 @@
         // --- APRENDIZAGEM ---
         function iniciarLicao(catIndex, retomando = false) {
             if (!isConnected) { alert("Conecte-se primeiro."); return showScreen('screenHome'); }
-            if (!retomando) licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
+            
+            if (!retomando) {
+                licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
+                tempoInicioLicao = Date.now();
+            }
+
             categoriaTitulo.textContent = licoes[licaoAtual.catIndex].categoria;
             proximaPalavraBtn.classList.add('hidden');
             if (!retomando) showScreen('screenAprendizagem');
@@ -475,7 +515,6 @@
             feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
             updateFingerStatus([], fingerElementsAprendizagem);
 
-            // Carrega imagem do GitHub
             let nomeArquivo = letra;
             if (letra === 'Ç') nomeArquivo = 'CC';
             imagemGestoDesafio.src = `${BASE_URL_IMAGENS}${nomeArquivo}.png`;
@@ -505,7 +544,7 @@
 
             if (aceito) {
                 acertouLetraAtual = true;
-		tocarAudio(letraCorreta);
+                tocarAudio(letraCorreta);
                 feedbackLabel.textContent = 'Correto!';
                 feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-green-800 bg-green-100';
                 licaoAtual.letraIndex++;
@@ -529,13 +568,46 @@
             }
         }
 
+        function salvarProgressoFirebase(categoria, tempoTotalMs) {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const segundosTotais = Math.floor(tempoTotalMs / 1000);
+            const minutos = Math.floor(segundosTotais / 60);
+            const segundos = segundosTotais % 60;
+            const tempoFormatado = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+
+            db.collection('progresso_usuarios').add({
+                uid: user.uid,
+                email: user.email,
+                categoria: categoria,
+                tempo_ms: tempoTotalMs,
+                tempo_formatado: tempoFormatado,
+                data_conclusao: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => console.log("Progresso salvo com sucesso!"))
+            .catch((error) => console.error("Erro ao salvar: ", error));
+        }
+
         function avancarLicao() {
             proximaPalavraBtn.classList.add('hidden');
             licaoAtual.palavraIndex++;
             licaoAtual.letraIndex = 0;
+
             if (licaoAtual.palavraIndex >= licoes[licaoAtual.catIndex].palavras.length) {
+                
+                const tempoFim = Date.now();
+                const tempoTotal = tempoFim - tempoInicioLicao;
+                const nomeCategoria = licoes[licaoAtual.catIndex].categoria;
+
+                salvarProgressoFirebase(nomeCategoria, tempoTotal);
+
+                // [IMPORTANTE] Recarrega os cartões para atualizar o recorde na tela
+                gerarCartoesLicao();
+
                 showScreen('screenSelecaoLicao');
-                alert('Parabéns! Você completou esta lição!');
+                alert(`Parabéns! Você completou a lição de ${nomeCategoria} em ${(tempoTotal/1000).toFixed(1)} segundos!`);
+            
             } else {
                 apresentarDesafio();
                 clearInterval(aprendizagemTimer);
@@ -543,7 +615,7 @@
             }
         }
 
-        // --- AUTH ---
+        // --- AUTH HANDLERS ---
         function handleSignIn() {
             const email = loginEmail.value; const password = loginPassword.value;
             if (!email || !password) return loginError.textContent = 'Preencha tudo.';
@@ -552,11 +624,15 @@
         function handleSignUp() {
             const email = loginEmail.value; const password = loginPassword.value;
             if (!email || !password) return loginError.textContent = 'Preencha tudo.';
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(cred => db.collection('users').doc(cred.user.uid).set({ email: cred.user.email, uid: cred.user.uid }))
-                .catch(e => loginError.textContent = 'Erro ao criar conta.');
+            auth.createUserWithEmailAndPassword(email, password).catch(e => loginError.textContent = 'Erro ao criar conta.');
         }
-        function handleSignOut() { auth.signOut(); }
+        function handleSignOut() {
+            auth.signOut();
+        }
+
+        loginPassword.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") handleSignIn();
+        });
     </script>
 </body>
 </html>
