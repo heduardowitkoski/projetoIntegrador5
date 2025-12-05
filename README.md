@@ -6,13 +6,13 @@ O sistema utiliza uma luva equipada com sensores para capturar a flexão dos ded
 
 **Arquitetura e Tecnologias**:
 O fluxo de funcionamento do sistema segue as seguintes etapas:
-Captura: Sensores de flexão (LDR na fase inicial, sensores flexíveis na versão final) e um acelerômetro, acoplados a uma luva, capturam os dados do gesto.
+Captura: Sensores LDR e um acelerômetro, acoplados a uma luva, capturam os dados do gesto.
 Coleta: Um microcontrolador ESP32 é responsável por ler os dados dos sensores e enviá-los para processamento.
 Processamento: Uma FPGA (Field-Programmable Gate Array) recebe os dados e executa um algoritmo de reconhecimento de padrões em hardware para identificar a letra correspondente com alta velocidade e baixo consumo de energia.
 Saída: Após o reconhecimento, o sistema aciona um módulo de áudio para a saída sonora e envia a informação para um aplicativo Android via comunicação sem fio, que exibe a letra na tela.
 
 **Componentes Principais:**:
-Hardware: ESP32, FPGA, Sensores de Flexão, Acelerômetro, Módulo de Áudio.
+Hardware: ESP32, FPGA, Sensores LDR, Acelerômetro, Módulo de Áudio.
 Software: Código em C/C++ para o ESP32, descrição de hardware em VHDL/Verilog para a FPGA e um aplicativo móvel para Android.
 Status do Projeto
 O projeto está atualmente em desenvolvimento, seguindo as etapas de arquitetura, prototipagem e implementação da solução final.
