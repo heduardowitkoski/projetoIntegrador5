@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRGL - Aprenda Libras</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .main-gradient { background-image: linear-gradient(to top right, #4f46e5, #6366f1); }
+        .btn-primary {
+            background-color: #14b8a6; color: white; transition: all 0.3s ease;
+        }
+        .btn-primary:hover { background-color: #0d9488; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { 
+            transform: translateY(-6px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
+        }
+        .finger-status {
+            display: flex; justify-content: center; gap: 10px; margin-top: 15px;
+        }
+        .finger {
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 2px solid #9ca3af; display: flex; align-items: center;
+            justify-content: center; font-weight: bold; color: #9ca3af;
+            background-color: #e5e7eb; transition: all 0.3s ease;
+            font-size: 0.8em; position: relative;
+        }
+        .finger.flexed {
+            background-color: #ef4444; border-color: #dc2626; color: white;
+        }
+        .finger.extended {
+            background-color: #22c55e; border-color: #16a34a; color: white;
+        }
+        .finger-name {
+            position: absolute; bottom: -20px; font-size: 0.7em; color: #6b7280; white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="bg-gray-200 flex items-center justify-center min-h-screen">
+
+    <div id="screenLogin" class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="h-[700px] flex flex-col p-8">
+            <div class="flex-1 flex flex-col items-center justify-center">
+                <div class="bg-indigo-100 p-4 rounded-full mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M12 10v4"/><path d="M12 18.5a2.5 2.5 0 0 1-5 0V16a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 1-5 0V16"/><path d="M12 14h1a2 2 0 0 1 2 2v2.5a2.5 2 0 0 0 5 0V16a2 2 0 0 0-2-2h-1"/></svg>
+                </div>
+                <h1 class="text-5xl font-extrabold mb-2 text-gray-800">SRGL</h1>
+                <p class="text-gray-500 mb-8">Acesse sua conta para continuar</p>
+
+                <div class="w-full flex flex-col space-y-4">
+                    <input type="email" id="loginEmail" placeholder="E-mail" class="w-full px-4 py-3 border border-gray-300 bg-gray-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="loginPassword" placeholder="Senha" class="w-full px-4 py-3 border border-gray-300 bg-gray-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    
+                    <p id="loginError" class="text-red-500 text-sm text-center h-4"></p>
+
+                    <button onclick="handleSignIn()" class="w-full btn-primary font-bold py-4 px-6 rounded-xl shadow-lg">Entrar</button>
+                    <button onclick="handleSignUp()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 px-6 rounded-xl">Criar Conta</button>
+                </div>
+            </div>
+            <div class="text-xs text-gray-400 text-center mt-4">Projeto Integrador V</div>
+        </div>
+    </div>
+
+    <div class="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden hidden" id="appContainer">
+        <div class="h-[700px] flex flex-col">
+
+            <div id="screenHome" class="hidden flex-col h-full p-8 text-center main-gradient text-white">
+                <div class="flex-1 flex flex-col items-center justify-center">
+                    <div class="bg-white/20 p-4 rounded-full mb-6 backdrop-blur-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M12 10v4"/><path d="M12 18.5a2.5 2.5 0 0 1-5 0V16a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 1-5 0V16"/><path d="M12 14h1a2 2 0 0 1 2 2v2.5a2.5 2 0 0 0 5 0V16a2 2 0 0 0-2-2h-1"/></svg>
+                    </div>
+                    <h1 class="text-5xl font-extrabold mb-2">SRGL</h1>
+                    <p class="text-indigo-200 mb-8 max-w-xs mx-auto">Sua jornada para aprender Libras começa aqui.</p>
+                    
+                    <div class="w-full flex flex-col space-y-4">
+                        <button onclick="showScreen('screenTraducao')" class="w-full bg-white text-indigo-600 font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">Modo Tradução</button>
+                        <button onclick="showScreen('screenSelecaoLicao')" class="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">Modo Aprendizagem</button>
+                    </div>
+                </div>
+
+                <div class="mt-8 w-full">
+                    <div class="flex gap-2">
+                        <input type="text" id="espIpInput" placeholder="IP do ESP32" class="w-full px-4 py-3 border border-indigo-300 bg-white/20 text-white placeholder-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-white">
+                        <button id="connectButton" onclick="toggleConnection()" class="px-5 py-3 btn-primary font-semibold rounded-xl shadow-md">Conectar</button>
+                    </div>
+                    <p id="statusConexao" class="text-indigo-200 text-sm mt-3">Status: Desconectado</p>
+                </div>
+                
+                <div class="text-xs text-indigo-300 mt-4 text-center">
+                    <span id="userEmailDisplay" class="font-semibold block mb-1"></span>
+                    <button onclick="handleSignOut()" class="font-semibold hover:text-white underline">Sair</button>
+                </div>
+            </div>
+
+            <div id="screenSelecaoLicao" class="hidden flex-col h-full p-6 bg-gray-50">
+                <div class="flex items-center mb-6">
+                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
+                    <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Lições</h2>
+                </div>
+                <p class="text-center text-gray-600 mb-6">Escolha uma categoria para ver seu recorde.</p>
+                <div id="licoesContainer" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                    <div class="text-center text-gray-400 mt-10">Carregando recordes...</div>
+                </div>
+            </div>
+
+            <div id="screenTraducao" class="hidden flex-col h-full p-6 bg-gray-50">
+                <div class="flex items-center mb-4">
+                    <button onclick="showScreen('screenHome')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
+                    <h2 class="flex-1 text-center text-2xl font-bold text-gray-800">Tradução</h2>
+                </div>
+                
+                <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6">
+                    <p id="statusTraducao" class="text-lg text-gray-500 font-semibold mb-4">Status: Desconectado</p>
+                    <div id="areaDisplayGesto" class="flex flex-col items-center justify-center min-h-[150px] w-full">
+                        <div id="gestoExibido" class="text-9xl font-extrabold text-indigo-600">-</div>
+                        <div id="containerOpcoes" class="hidden flex-wrap justify-center gap-3 w-full"></div>
+                    </div>
+                    <div class="finger-status mt-6">
+                        <div id="finger_trad_0" class="finger"><span class="finger-name">Mindinho</span></div>
+                        <div id="finger_trad_1" class="finger"><span class="finger-name">Anelar</span></div>
+                        <div id="finger_trad_2" class="finger"><span class="finger-name">Médio</span></div>
+                        <div id="finger_trad_3" class="finger"><span class="finger-name">Indicador</span></div>
+                        <div id="finger_trad_4" class="finger"><span class="finger-name">Polegar</span></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-4 bg-gray-100 rounded-xl">
+                    <div class="flex items-center mb-1">
+                        <p class="text-sm text-gray-600 font-medium">Palavra formada:</p>
+                        <button onclick="limparPalavra()" class="ml-auto text-sm font-medium text-indigo-600 hover:text-indigo-800">Limpar</button>
+                    </div>
+                    <p id="palavraFormada" class="text-xl text-gray-800 font-semibold">-</p>
+                </div>
+            </div>
+
+            <div id="screenAprendizagem" class="hidden flex-col h-full p-6 bg-gray-50">
+                <div class="flex items-center mb-4">
+                    <button onclick="showScreen('screenSelecaoLicao')" class="text-gray-500 hover:text-indigo-600">&larr; Voltar</button>
+                    <h2 id="categoriaTitulo" class="flex-1 text-center text-2xl font-bold text-gray-800">Aprendendo</h2>
+                </div>
+                
+                <div class="text-center mb-4 p-4 rounded-xl bg-indigo-100">
+                    <p class="font-semibold text-indigo-800">Soletrar a palavra:</p>
+                    <div id="palavraDesafioContainer" class="text-3xl font-bold text-indigo-600 tracking-widest mt-1"></div> 
+                </div>
+                
+                <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner p-6 space-y-2">
+                    <p class="text-gray-500 text-lg">Faça o gesto para a letra:</p>
+                    <div id="letraDesafioLabel" class="text-9xl font-extrabold text-teal-500">?</div>
+                    <img id="imagemGestoDesafio" src="" alt="Gesto a ser feito" class="w-40 h-40 object-contain my-4 border border-gray-300 rounded-lg p-2 bg-white shadow-sm" style="display: none;">
+                    <div id="feedbackLabel" class="w-full p-3 rounded-lg text-center font-semibold">Aguarde...</div>
+                    <div class="finger-status">
+                        <div id="finger_apren_0" class="finger"><span class="finger-name">Mindinho</span></div>
+                        <div id="finger_apren_1" class="finger"><span class="finger-name">Anelar</span></div>
+                        <div id="finger_apren_2" class="finger"><span class="finger-name">Médio</span></div>
+                        <div id="finger_apren_3" class="finger"><span class="finger-name">Indicador</span></div>
+                        <div id="finger_apren_4" class="finger"><span class="finger-name">Polegar</span></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button id="proximaPalavraBtn" onclick="avancarLicao()" class="hidden w-full btn-primary font-bold py-4 px-6 rounded-xl shadow-lg">Próxima Palavra</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <script>
+        // =================================================================================
+        // CONFIGURAÇÃO
+        // =================================================================================
+        const firebaseConfig = {
+          apiKey: "AIzaSyB1qc2AyWRupxNejbj7pZ-jecl23XzAvPE",
+          authDomain: "srgl-f2eab.firebaseapp.com",
+          projectId: "srgl-f2eab",
+          storageBucket: "srgl-f2eab.firebasestorage.app",
+          messagingSenderId: "873645083737",
+          appId: "1:873645083737:web:7b68b9e0c605ea01e8b548"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Links de Recursos
+        const BASE_URL_IMAGENS = "https://raw.githubusercontent.com/heduardowitkoski/projetoIntegrador5/main/gestos/"; 
+        const BASE_URL_AUDIO = "https://raw.githubusercontent.com/heduardowitkoski/projetoIntegrador5/main/audios/";
+
+        // Referências DOM
+        const loginScreen = document.getElementById('screenLogin');
+        const appContainer = document.getElementById('appContainer');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        const allScreens = ['screenHome', 'screenSelecaoLicao', 'screenTraducao', 'screenAprendizagem', 'screenLogin'];
+        const espIpInput = document.getElementById('espIpInput');
+        const connectButton = document.getElementById('connectButton');
+        const statusConexao = document.getElementById('statusConexao');
+        const statusLabelTraducao = document.getElementById('statusTraducao');
+        const gestoLabel = document.getElementById('gestoExibido');
+        const containerOpcoes = document.getElementById('containerOpcoes');
+        const palavraLabel = document.getElementById('palavraFormada');
+        const licoesContainer = document.getElementById('licoesContainer');
+        const categoriaTitulo = document.getElementById('categoriaTitulo');
+        const palavraDesafioContainer = document.getElementById('palavraDesafioContainer');
+        const letraDesafioLabel = document.getElementById('letraDesafioLabel');
+        const feedbackLabel = document.getElementById('feedbackLabel');
+        const proximaPalavraBtn = document.getElementById('proximaPalavraBtn');
+        const imagemGestoDesafio = document.getElementById('imagemGestoDesafio');
+
+        const fingerElementsTraducao = [
+            document.getElementById('finger_trad_0'), document.getElementById('finger_trad_1'),
+            document.getElementById('finger_trad_2'), document.getElementById('finger_trad_3'),
+            document.getElementById('finger_trad_4')
+        ];
+        const fingerElementsAprendizagem = [
+            document.getElementById('finger_apren_0'), document.getElementById('finger_apren_1'),
+            document.getElementById('finger_apren_2'), document.getElementById('finger_apren_3'),
+            document.getElementById('finger_apren_4')
+        ];
+
+        const mapaAmbiguidades = { 'S': ['S', 'E', 'N', 'M', 'Q'] };
+
+        const licoes = [
+            {
+                categoria: "Basico",
+                icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.34 0 .67-.02 1-.05M12 2c5.52 0 10 4.48 10 10 0 .34-.02.67-.05 1M6.4 17.6A8 8 0 0 0 17.6 6.4"/></svg>`,
+                palavras: ["DIA", "FALA", "CAI"], cor: "bg-blue-500"
+            },
+            {
+                categoria: "Diversos",
+                icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.56 16.5c-.83 1.33-2.33 2.5-4.56 2.5-1.44 0-2.67-.5-3.5-1.5-.83 1-2.06 1.5-3.5 1.5-2.23 0-3.73-1.17-4.56-2.5A8.2 8.2 0 0 1 2 12.35c0-4.42 3.58-8 8-8 2.22 0 4.22.9 5.66 2.34A8.01 8.01 0 0 1 22 12.35a8.1 8.1 0 0 1-.44 4.15z"/><path d="M16 4.34c-1.44-1.44-3.44-2.34-5.66-2.34-4.42 0-8 3.58-8 8a8.2 8.2 0 0 0 3.44 6.5"/></svg>`,
+                palavras: ["WIFI", "BALA", "FADA"], cor: "bg-red-500"
+            },
+            {
+                categoria: "Nomes",
+                icone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5v-2M13.5 20.5v-2"/><path d="M15.5 16.5a2 2 0 0 0-1.2-1.8c-1.3-.5-2.8-.5-4.1 0a2 2 0 0 0-1.2 1.8c0 .9.6 1.7 1.5 2h3.1c.9-.3 1.5-1.1 1.5-2Z"/><path d="M12 12.5a2.49 2.49 0 0 0-2.4 2 2.5 2.5 0 0 0 4.9 0 2.49 2.49 0 0 0-2.5-2Z"/><path d="M2 12.83c0-2.82 2.18-5.11 5-5.63a8.8 8.8 0 0 1 10 0c2.82.52 5 2.81 5 5.63V15a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></svg>`,
+                palavras: ["BIA", "LILA", "DIDA"], cor: "bg-yellow-500"
+            }
+        ];
+
+        let isConnected = false;
+        let currentScreen = 'screenLogin';
+        let traducaoTimer = null, palavraTimer = null, aprendizagemTimer = null, homeConnectionTimer = null;
+        let palavraAtualTraducao = "-";
+        let licaoAtual = { catIndex: 0, palavraIndex: 0, letraIndex: 0 };
+        let acertouLetraAtual = false;
+
+        let tempoInicioLicao = 0;
+
+        // AUTH
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                loginScreen.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                showScreen('screenHome');
+                userEmailDisplay.textContent = user.email;
+                inicializarApp();
+            } else {
+                loginScreen.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                if (isConnected) toggleConnection();
+                loginPassword.value = ""; loginError.textContent = "";
+                currentScreen = 'screenLogin';
+            }
+        });
+
+        function inicializarApp() {
+            const savedIp = localStorage.getItem('espIpAddress');
+            if (savedIp) espIpInput.value = savedIp;
+            gerarCartoesLicao();
+        }
+
+        function tocarAudio(letra) {
+            if (!letra || letra === '-' || letra === '?') return;
+            let nomeArquivo = letra;
+            if (letra === 'Ç') nomeArquivo = 'CEDILHA'; 
+            const audio = new Audio(`${BASE_URL_AUDIO}${nomeArquivo}.mp3`);
+            audio.play().catch(e => console.log("Erro ao tocar áudio:", e));
+        }
+
+        // [IMPORTANTE] Função atualizada para ser assíncrona e buscar o melhor tempo
+        async function gerarCartoesLicao() {
+            const user = auth.currentUser;
+            licoesContainer.innerHTML = '<div class="text-center text-gray-500">Atualizando recordes...</div>';
+            
+            let htmlFinal = '';
+
+            // Usamos um loop for..of para processar de forma assíncrona
+            for (const [index, licao] of licoes.entries()) {
+                let melhorTempo = "--:--";
+                
+                if (user) {
+                    try {
+                        // Busca o MENOR tempo (recorde) para esta categoria e este usuário
+                        const snapshot = await db.collection('progresso_usuarios')
+                            .where('uid', '==', user.uid)
+                            .where('categoria', '==', licao.categoria)
+                            .orderBy('tempo_ms', 'asc') // Ordena do menor para o maior (mais rápido)
+                            .limit(1) // Pega apenas o primeiro (o melhor)
+                            .get();
+
+                        if (!snapshot.empty) {
+                            melhorTempo = snapshot.docs[0].data().tempo_formatado;
+                        }
+                    } catch (error) {
+                        console.log("Erro ao buscar recorde (provavelmente falta índice):", error);
+                        // Se der erro de índice, o link aparecerá no console do navegador
+                    }
+                }
+
+                htmlFinal += `
+                    <div onclick="iniciarLicao(${index})" class="card-hover relative flex items-center p-5 rounded-2xl shadow-sm cursor-pointer text-white ${licao.cor}">
+                        <div class="mr-4">${licao.icone}</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">${licao.categoria}</h3>
+                            <p class="text-sm opacity-80 mb-1">${licao.palavras.join(', ')}</p>
+                            
+                            <div class="inline-block bg-black/20 px-2 py-1 rounded text-xs font-semibold backdrop-blur-md">
+                                🏆 Melhor: ${melhorTempo}
+                            </div>
+                        </div>
+                        <span class="ml-auto font-bold text-2xl">&rarr;</span>
+                    </div>`;
+            }
+
+            licoesContainer.innerHTML = htmlFinal;
+        }
+
+        function showScreen(screenId) {
+            if (currentScreen === 'screenTraducao') { clearInterval(traducaoTimer); clearInterval(palavraTimer); }
+            if (currentScreen === 'screenAprendizagem') clearInterval(aprendizagemTimer);
+            if (currentScreen === 'screenHome') clearInterval(homeConnectionTimer);
+
+            allScreens.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+            if(imagemGestoDesafio) { imagemGestoDesafio.style.display = 'none'; imagemGestoDesafio.src = ''; }
+
+            document.getElementById(screenId).classList.remove('hidden');
+            currentScreen = screenId;
+
+            if (screenId === 'screenTraducao') {
+                if (isConnected) {
+                    traducaoTimer = setInterval(fetchGestoTraducao, 500);
+                    palavraTimer = setInterval(concatenarLetra, 4000);
+                    fetchGestoTraducao();
+                    statusLabelTraducao.textContent = 'Status: Conectando...';
+                } else {
+                    statusLabelTraducao.textContent = 'Status: Desconectado';
+                    updateFingerStatus([], fingerElementsTraducao);
+                }
+            } else if ((screenId === 'screenAprendizagem') && !isConnected) {
+                alert("Conecte-se ao ESP32 primeiro.");
+                showScreen('screenHome');
+            } else if (screenId === 'screenSelecaoLicao') {
+                // Atualiza os recordes toda vez que entra na tela de seleção
+                gerarCartoesLicao();
+                if (!isConnected) {
+                     alert("Conecte-se ao ESP32 primeiro.");
+                     showScreen('screenHome');
+                }
+            } else if (screenId === 'screenHome' && isConnected) {
+                homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000);
+                checkHomeConnectionStatus();
+            }
+        }
+
+        function toggleConnection() {
+            if (isConnected) {
+                isConnected = false;
+                espIpInput.disabled = false;
+                connectButton.textContent = 'Conectar';
+                connectButton.className = "px-5 py-3 btn-primary font-semibold rounded-xl shadow-md";
+                statusConexao.textContent = 'Status: Desconectado';
+                clearInterval(traducaoTimer); clearInterval(palavraTimer); clearInterval(aprendizagemTimer); clearInterval(homeConnectionTimer);
+            } else {
+                const ip = espIpInput.value.trim();
+                if (!ip) return alert("Insira o IP");
+                localStorage.setItem('espIpAddress', ip);
+                isConnected = true;
+                espIpInput.disabled = true;
+                connectButton.textContent = 'Parar';
+                connectButton.className = "px-5 py-3 bg-red-500 text-white font-semibold rounded-xl shadow-md hover:bg-red-600";
+                statusConexao.textContent = 'Status: Conectando...';
+                homeConnectionTimer = setInterval(checkHomeConnectionStatus, 2000);
+                checkHomeConnectionStatus();
+            }
+        }
+
+        async function checkHomeConnectionStatus() {
+            if (!isConnected) return;
+            try {
+                const response = await fetch(`http://${espIpInput.value}/gesto`);
+                if (!response.ok) throw new Error();
+                statusConexao.textContent = 'Status: Conectado';
+            } catch (e) {
+                statusConexao.textContent = 'Status: Tentando reconectar...';
+            }
+        }
+
+        function updateFingerStatus(ldrStates, elements) {
+            elements.forEach((el, i) => {
+                el.classList.remove('flexed', 'extended');
+                if (ldrStates && ldrStates[i] !== undefined) el.classList.add(ldrStates[i] === 0 ? 'flexed' : 'extended');
+            });
+        }
+
+        // --- TRADUÇÃO ---
+        async function fetchGestoTraducao() {
+            if (!isConnected) return;
+            try {
+                const response = await fetch(`http://${espIpInput.value}/gesto`);
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                statusLabelTraducao.textContent = 'Status: Conectado';
+                updateFingerStatus(data.dedos, fingerElementsTraducao);
+                
+                const letra = data.letra;
+                const opcoes = mapaAmbiguidades[letra];
+
+                if (opcoes) {
+                    gestoLabel.classList.add('hidden');
+                    containerOpcoes.classList.remove('hidden');
+                    containerOpcoes.classList.add('flex');
+                    if (containerOpcoes.dataset.lastLetra !== letra) {
+                        containerOpcoes.innerHTML = '';
+                        opcoes.forEach(op => {
+                            const btn = document.createElement('button');
+                            btn.className = "w-14 h-14 rounded-xl bg-indigo-600 text-white text-2xl font-bold hover:bg-indigo-700 shadow-lg transform transition hover:scale-105 active:scale-95";
+                            btn.textContent = op;
+                            btn.onclick = () => adicionarLetraManual(op);
+                            containerOpcoes.appendChild(btn);
+                        });
+                        containerOpcoes.dataset.lastLetra = letra;
+                    }
+                } else {
+                    containerOpcoes.classList.add('hidden');
+                    containerOpcoes.classList.remove('flex');
+                    gestoLabel.classList.remove('hidden');
+                    gestoLabel.textContent = letra;
+                    containerOpcoes.dataset.lastLetra = "";
+                }
+            } catch (e) {
+                statusLabelTraducao.textContent = 'Status: Erro de Conexão';
+            }
+        }
+
+        function adicionarLetraManual(letra) {
+            tocarAudio(letra);
+            const label = document.getElementById('palavraFormada');
+            let texto = label.textContent === "-" ? "" : label.textContent;
+            texto += letra;
+            label.textContent = texto;
+            palavraAtualTraducao = texto;
+            label.classList.add('text-green-600');
+            setTimeout(() => label.classList.remove('text-green-600'), 200);
+        }
+
+        function limparPalavra() {
+            palavraAtualTraducao = "-";
+            palavraLabel.textContent = "-";
+        }
+
+        function concatenarLetra() {
+            if (!containerOpcoes.classList.contains('hidden')) return;
+            const letra = gestoLabel.textContent;
+            if (letra === '-' || letra === '?' || letra.length > 1) return;
+            tocarAudio(letra);
+            if (palavraAtualTraducao === "-") palavraAtualTraducao = letra;
+            else palavraAtualTraducao += letra;
+            palavraLabel.textContent = palavraAtualTraducao;
+        }
+
+        // --- APRENDIZAGEM ---
+        function iniciarLicao(catIndex, retomando = false) {
+            if (!isConnected) { alert("Conecte-se primeiro."); return showScreen('screenHome'); }
+            
+            if (!retomando) {
+                licaoAtual = { catIndex, palavraIndex: 0, letraIndex: 0 };
+                tempoInicioLicao = Date.now();
+            }
+
+            categoriaTitulo.textContent = licoes[licaoAtual.catIndex].categoria;
+            proximaPalavraBtn.classList.add('hidden');
+            if (!retomando) showScreen('screenAprendizagem');
+            apresentarDesafio();
+            clearInterval(aprendizagemTimer);
+            aprendizagemTimer = setInterval(fetchGestoAprendizagem, 500);
+        }
+
+        function apresentarDesafio() {
+            acertouLetraAtual = false;
+            const { catIndex, palavraIndex, letraIndex } = licaoAtual;
+            const palavra = licoes[catIndex].palavras[palavraIndex];
+            const letra = palavra[letraIndex];
+
+            palavraDesafioContainer.innerHTML = palavra.split('').map((char, i) => 
+                `<span class="${i < letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
+            ).join('');
+
+            letraDesafioLabel.textContent = letra;
+            feedbackLabel.textContent = 'Aguardando seu gesto...';
+            feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-yellow-800 bg-yellow-100';
+            updateFingerStatus([], fingerElementsAprendizagem);
+
+            let nomeArquivo = letra;
+            if (letra === 'Ç') nomeArquivo = 'CC';
+            imagemGestoDesafio.src = `${BASE_URL_IMAGENS}${nomeArquivo}.png`;
+            imagemGestoDesafio.style.display = 'block';
+        }
+
+        async function fetchGestoAprendizagem() {
+            if (acertouLetraAtual || !isConnected) return;
+            try {
+                const response = await fetch(`http://${espIpInput.value}/gesto`);
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                updateFingerStatus(data.dedos, fingerElementsAprendizagem);
+                if (data.letra !== '?') verificarGesto(data.letra);
+            } catch (e) {
+                feedbackLabel.textContent = 'Erro de Conexão';
+            }
+        }
+
+        function verificarGesto(letraRecebida) {
+            const { catIndex, palavraIndex, letraIndex } = licaoAtual;
+            const palavra = licoes[catIndex].palavras[palavraIndex];
+            const letraCorreta = palavra[letraIndex];
+
+            let aceito = (letraRecebida === letraCorreta);
+            if (letraRecebida === 'S' && ['E','N','M','Q'].includes(letraCorreta)) aceito = true;
+
+            if (aceito) {
+                acertouLetraAtual = true;
+                tocarAudio(letraCorreta);
+                feedbackLabel.textContent = 'Correto!';
+                feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-green-800 bg-green-100';
+                licaoAtual.letraIndex++;
+                
+                palavraDesafioContainer.innerHTML = palavra.split('').map((char, i) => 
+                    `<span class="${i < licaoAtual.letraIndex ? 'text-teal-500' : 'text-gray-400'}">${char}</span>`
+                ).join('');
+
+                setTimeout(() => {
+                    if (licaoAtual.letraIndex >= palavra.length) {
+                        feedbackLabel.textContent = 'Palavra completa!';
+                        proximaPalavraBtn.classList.remove('hidden');
+                        clearInterval(aprendizagemTimer);
+                    } else {
+                        apresentarDesafio();
+                    }
+                }, 1000);
+            } else {
+                feedbackLabel.textContent = `Incorreto. Você fez "${letraRecebida}". Tente "${letraCorreta}".`;
+                feedbackLabel.className = 'w-full p-3 rounded-lg text-center font-semibold text-red-800 bg-red-100';
+            }
+        }
+
+        function salvarProgressoFirebase(categoria, tempoTotalMs) {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const segundosTotais = Math.floor(tempoTotalMs / 1000);
+            const minutos = Math.floor(segundosTotais / 60);
+            const segundos = segundosTotais % 60;
+            const tempoFormatado = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+
+            db.collection('progresso_usuarios').add({
+                uid: user.uid,
+                email: user.email,
+                categoria: categoria,
+                tempo_ms: tempoTotalMs,
+                tempo_formatado: tempoFormatado,
+                data_conclusao: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => console.log("Progresso salvo com sucesso!"))
+            .catch((error) => console.error("Erro ao salvar: ", error));
+        }
+
+        function avancarLicao() {
+            proximaPalavraBtn.classList.add('hidden');
+            licaoAtual.palavraIndex++;
+            licaoAtual.letraIndex = 0;
+
+            if (licaoAtual.palavraIndex >= licoes[licaoAtual.catIndex].palavras.length) {
+                
+                const tempoFim = Date.now();
+                const tempoTotal = tempoFim - tempoInicioLicao;
+                const nomeCategoria = licoes[licaoAtual.catIndex].categoria;
+
+                salvarProgressoFirebase(nomeCategoria, tempoTotal);
+
+                // [IMPORTANTE] Recarrega os cartões para atualizar o recorde na tela
+                gerarCartoesLicao();
+
+                showScreen('screenSelecaoLicao');
+                alert(`Parabéns! Você completou a lição de ${nomeCategoria} em ${(tempoTotal/1000).toFixed(1)} segundos!`);
+            
+            } else {
+                apresentarDesafio();
+                clearInterval(aprendizagemTimer);
+                aprendizagemTimer = setInterval(fetchGestoAprendizagem, 500);
+            }
+        }
+
+        // --- AUTH HANDLERS ---
+        function handleSignIn() {
+            const email = loginEmail.value; const password = loginPassword.value;
+            if (!email || !password) return loginError.textContent = 'Preencha tudo.';
+            auth.signInWithEmailAndPassword(email, password).catch(e => loginError.textContent = 'Erro no login.');
+        }
+        function handleSignUp() {
+            const email = loginEmail.value; const password = loginPassword.value;
+            if (!email || !password) return loginError.textContent = 'Preencha tudo.';
+            auth.createUserWithEmailAndPassword(email, password).catch(e => loginError.textContent = 'Erro ao criar conta.');
+        }
+        function handleSignOut() {
+            auth.signOut();
+        }
+
+        loginPassword.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") handleSignIn();
+        });
+    </script>
+</body>
+</html>
