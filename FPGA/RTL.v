@@ -9,42 +9,58 @@ module SRGL(
     output reg [7:0] letra_final
 );
 
-reg signed [31:0] mem_rom [9:0][29:0];
+// ========================================================================
+// 1. CONSTANTES E DEFINIÇÕES (PONTO FIXO: ESCALA x100)
+// ========================================================================
+// Tolerâncias multiplicadas por 100
+localparam signed [31:0] TOLERANCIA_Z = 300; // 3.0 * 100
+localparam signed [31:0] TOLERANCIA_J = 425; // 4.25 * 100
+localparam signed [31:0] TOLERANCIA_H = 150; // 1.5 * 100
+localparam signed [31:0] TOLERANCIA_V = 500; // 5.0 * 100
+
+reg signed [31:0] mem_rom [29:0];
 reg signed [31:0] mem_ram [29:0];
 
 wire signed letra_base[7:0]; //8bits para letras em ASCII
 
 integer i;
-//===============
-//DECODIFICADOR
-//===============
-always(*) begin
+
+// ========================================================================
+// BUFFER DE ENTRADA (RAM)
+// ========================================================================
+// Desempacota o vetorzão de 960 bits para um array de 30 posições
+always @(*) begin
+    a = 32;
+    if(mov) begin
+            for (i = 0; i < 30; i = i + 1) begin
+                //PREENCHE A RAM COM VALORES DO MPU
+                mem_ram[i] = mpu[31+(a*i) : a*i];
+            end
+        end
+
+end
+
+
+// ========================================================================
+// DECODIFICADOR LDR (LETRA BASE)
+// ========================================================================
+reg [7:0] letra_base; // ASCII (char)
+
+always @(*) begin
     case(ldr)
         5'b00001: letra_base = "A";
-
         5'b11110: letra_base = "B";
-
         5'b11111: letra_base = "C";
-
-        5'b00010: letra_base = "D";
-
+        5'b00010: letra_base = "D"; // Base para Z
         5'b11101: letra_base = "F";
-
-        5'b00110: letra_base = "U";
-
+        5'b00110: letra_base = "U"; // Base para V
         5'b00101: letra_base = "H";
-
-        5'b10000: letra_base = "I";
-        
+        5'b10000: letra_base = "I"; // Base para J
         5'b00011: letra_base = "L";
-
         5'b01110: letra_base = "W";
-
         5'b10001: letra_base = "Y";
-
         5'b00000: letra_base = "S";
-
-        default:begin end
+        default:  letra_base = "?";
     endcase
 end
 
@@ -52,99 +68,120 @@ wire signed [9:0] letra_encaminhada = mov  ?   ROM_addr    :
                                     letra_base;
 
 wire signed [31:0] vetor_modelo [29:0];
-wire signed [31:0] a, b;
+wire signed [31:0] a;
 
 //==============================================
 //ESCOLHA NA ROM COM MODELOS E PREENCHE BUFFER
 //==============================================
 always @(*) begin
     a = 32;
-    b = 32;
     if(mov) begin
             //PEGA O VETOR MODELO COM 30 ELEMENTOS CORRESPONDENTE DA LETRA
             vetor_modelo = mem_rom[letra_encaminhada];
             for (i = 0; i < 30; i = i + 1) begin
                 //PREENCHE A RAM COM VALORES DO MPU
-                mem_ram[i] = mpu[31+(a*i) : b*i];
+                mem_ram[i] = mpu[31+(a*i) : a*i];
             end
         end
 
 end
 
-reg signed [31:0] vetor_model [29:0];
-reg signed [31:0] buff [29:0];
-reg signed [7:0] letra_acel;
+reg signed [31:0] tolerancia_atual;
+reg [7:0] letra_alvo_movimento; // Qual letra vira se o movimento for válido?
+reg verificar_movimento;
 
-//==============================
-//ADICIONA AOS REGISTRADORES
-//==============================
-always @(posedge clk or posedge reset) begin
-    if(reset) begin
-        vetor_model <= 0;
-        buff        <= 0;
-    end else begin
-        if(mov) begin
-            vetor_model <= vetor_modelo;
-            buff        <= mem_ram;
-            letra_acel  <= letra_base; //MODIFICAR DEPOIS PARA LETRA CORRETA DO ACELEROMETRO
-        end
+// ========================================================================
+// LÓGICA DE SELEÇÃO DE MODELO 
+// ========================================================================
+always @(*) begin
+        // Valores padrão (se não houver movimento associado)
+        verificar_movimento = 0;
+        tolerancia_atual = 0;
+        letra_alvo_movimento = letra_base;
+        
+        // Zera o modelo
+        for(i=0; i<30; i=i+1) mem_rom[i] = 0;
 
-    end
+        case (letra_base)
+            "D": begin // Se base é D, testamos se é Z
+                verificar_movimento = 1;
+                letra_alvo_movimento = "Z";
+                tolerancia_atual = TOLERANCIA_Z;
+                // Carrega MODELO_Z_X (Valores x100)
+                mem_rom[0] = -865; mem_rom[1] = -854; mem_rom[2] = -685;
+                mem_rom[3] = -813; mem_rom[4] = -809; mem_rom[5] = -784;
+                mem_rom[6] = -836; mem_rom[7] = -781; mem_rom[8] = -598;
+                mem_rom[9] = -341; mem_rom[10] = -313; mem_rom[11] = -347;
+                mem_rom[12] = -270; mem_rom[13] = -225; mem_rom[14] = -209;
+                mem_rom[15] = -283; mem_rom[16] = -472; mem_rom[17] = -886;
+                mem_rom[18] = -1141; mem_rom[19] = -873; mem_rom[20] = -757;
+                mem_rom[21] = -656; mem_rom[22] = -509; mem_rom[23] = -349;
+                mem_rom[24] = -352; mem_rom[25] = -358; mem_rom[26] = -522;
+                mem_rom[27] = -556; mem_rom[28] = -612; mem_rom[29] = -550;
+            end
+        endcase
 end
 
 wire signed [31:0] sub, soma_indice, media;
 
 
-//==========================
-//SUBTRATOR DA media
-//==========================
+// ========================================================================
+// CÁLCULO MATEMÁTICO
+// ========================================================================
+
+reg signed [31:0] soma_buffer;
+reg signed [31:0] soma_modelo;
+reg signed [31:0] media_buffer;
+reg signed [31:0] media_modelo;
+reg signed [31:0] diff_norm;
+reg signed [31:0] soma_erro_abs;
+reg signed [31:0] erro_final;
+
 always @(*) begin
-    sub             = 0;
-    soma_indice     = 0;
-    media       = 0;
-    if(mov) begin
-        for(i=0; i < 30; i=i+1) begin
-            sub = buff[i] - vetor_model[i];
-            soma_indice = soma_indice + sub;
-        end
-        media = soma_indice / 30;
+    soma_buffer = 0;
+    soma_modelo = 0;
+    soma_erro_abs = 0;
+
+    // 1. Calcular Médias
+    for (i = 0; i < 30; i = i + 1) begin
+        soma_buffer = soma_buffer + buffer_ram[i];
+        soma_modelo = soma_modelo + modelo_selecionado[i];
     end
+    
+    media_buffer = soma_buffer / 30;
+    media_modelo = soma_modelo / 30;
+
+    // 2. Calcular Diferença Absoluta Normalizada
+    for (i = 0; i < 30; i = i + 1) begin
+        // (Buffer - MediaB) - (Modelo - MediaM)
+        diff_norm = (buffer_ram[i] - media_buffer) - (modelo_selecionado[i] - media_modelo);
+        
+        // Função ABS (Valor Absoluto)
+        if (diff_norm < 0) 
+            soma_erro_abs = soma_erro_abs - diff_norm;
+        else
+            soma_erro_abs = soma_erro_abs + diff_norm;
+    end
+
+    // 3. Média do Erro
+    erro_final = soma_erro_abs / 30;
 end
 
 
-reg signed [31:0] media_da_diferenca;
-
-//=======================
-//ADICIONA AO REGISTRADOR
-//=======================
+// ========================================================================
+// SAÍDA REGISTRADA
+// ========================================================================
 always @(posedge clk or posedge reset) begin
-    if(reset) begin
-        media_da_diferenca <= 0;
+    if (reset) begin
+        letra_final <= "?";
     end else begin
-        if(mov) begin
-            media_da_diferenca <= media;
-        end
-    end
-end
-
-//=====================
-//TOLERAVEL
-//=====================
-wire toleravel = (media_da_diferenca < tolerancia);
-
-wire AND = mov && toleravel;
-
-wire signed [7:0] letra_f = AND     ?   letra_acel  :   letra_base;
-
-//======================
-//ADICIONA O RESULTADO
-//======================
-always @(posedge clk or posedge reset) begin
-    if(reset) begin
-        letra_final <= 0;
-    end else begin
-        if(mov) begin
-            letra_final <= letra_f;
+        // Lógica final:
+        // Se houve movimento detectado (mov=1) E a letra atual requer verificação (verificar_movimento=1)
+        // E o erro calculado for menor que a tolerância...
+        if (mov && verificar_movimento && (erro_final < tolerancia_atual)) begin
+            letra_final <= letra_alvo_movimento; // Ex: vira 'Z'
+        end else begin
+            letra_final <= letra_base; // Mantém 'D' ou a letra do LDR
         end
     end
 end
