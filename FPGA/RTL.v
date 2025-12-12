@@ -1,13 +1,12 @@
 module SRGL(
     input wire clk,
     input wire reset,
-    input wire write_enable, //write enable para escrever na ram
     input wire mov, //flag de movimentacao
 
     input wire signed [959:0] mpu, //30 valores do acelerometro -> 30x32(bits) = 960 bits
     input wire [4:0] ldr, //5 sinais dos ldrs
 
-    output reg letra_final
+    output reg [7:0] letra_final
 );
 
 reg signed [31:0] mem_rom [9:0][29:0];
@@ -15,6 +14,7 @@ reg signed [31:0] mem_ram [29:0];
 
 wire signed letra_base[7:0]; //8bits para letras em ASCII
 
+integer i;
 //===============
 //DECODIFICADOR
 //===============
@@ -51,8 +51,7 @@ end
 wire signed [9:0] letra_encaminhada = mov  ?   ROM_addr    :
                                     letra_base;
 
-wire signed [31:0] letra_modelo [29:0];
-integer i;
+wire signed [31:0] vetor_modelo [29:0];
 wire signed [31:0] a, b;
 
 //==============================================
@@ -63,7 +62,7 @@ always @(*) begin
     b = 32;
     if(mov) begin
             //PEGA O VETOR MODELO COM 30 ELEMENTOS CORRESPONDENTE DA LETRA
-            letra_modelo = mem_rom[letra_encaminhada];
+            vetor_modelo = mem_rom[letra_encaminhada];
             for (i = 0; i < 30; i = i + 1) begin
                 //PREENCHE A RAM COM VALORES DO MPU
                 mem_ram[i] = mpu[31+(a*i) : b*i];
@@ -72,41 +71,43 @@ always @(*) begin
 
 end
 
-reg signed [31:0] letra_model [29:0];
+reg signed [31:0] vetor_model [29:0];
 reg signed [31:0] buff [29:0];
+reg signed [7:0] letra_acel;
 
 //==============================
 //ADICIONA AOS REGISTRADORES
 //==============================
 always @(posedge clk or posedge reset) begin
     if(reset) begin
-        letra_model <= 0;
+        vetor_model <= 0;
         buff        <= 0;
     end else begin
         if(mov) begin
-            letra_model <= letra_modelo;
+            vetor_model <= vetor_modelo;
             buff        <= mem_ram;
+            letra_acel  <= letra_base; //MODIFICAR DEPOIS PARA LETRA CORRETA DO ACELEROMETRO
         end
 
     end
 end
 
-wire signed [31:0] sub, soma_indice, diferenca;
+wire signed [31:0] sub, soma_indice, media;
 
 
 //==========================
-//SUBTRATOR DA DIFERENCA
+//SUBTRATOR DA media
 //==========================
 always @(*) begin
     sub             = 0;
     soma_indice     = 0;
-    diferenca       = 0;
+    media       = 0;
     if(mov) begin
         for(i=0; i < 30; i=i+1) begin
-            sub <= mem_ram[i] - letra_modelo[i];
-            soma_indice <= soma_indice + sub;
+            sub = buff[i] - vetor_model[i];
+            soma_indice = soma_indice + sub;
         end
-        diferenca <= soma_indice / 30;
+        media = soma_indice / 30;
     end
 end
 
@@ -121,7 +122,7 @@ always @(posedge clk or posedge reset) begin
         media_da_diferenca <= 0;
     end else begin
         if(mov) begin
-            media_da_diferenca <= diferenca;
+            media_da_diferenca <= media;
         end
     end
 end
