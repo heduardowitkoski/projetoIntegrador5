@@ -40,7 +40,7 @@ module tb_SRGL;
     reg signed [31:0] padrao_Z [0:29];
     integer k;
 
-    // Inicializa o array com o padrão Z correto (copiado do seu código)
+    // ENTRADA DO USUARIO (Inicializa o array com o padrão Z correto)
     initial begin
         padrao_Z[0] = -865; padrao_Z[1] = -854; padrao_Z[2] = -685;
         padrao_Z[3] = -813; padrao_Z[4] = -809; padrao_Z[5] = -784;
@@ -120,7 +120,6 @@ module tb_SRGL;
         #10;
 
         // Loop para enviar dados ruidosos (valores constantes altos, ex: 5000)
-        // Isso deve gerar um erro grande e NÃO ativar a troca para Z
         for (k = 0; k < 30; k = k + 1) begin
             @(posedge clk); 
             mpu_valor = 32'd5000; // Valor muito diferente do modelo Z
