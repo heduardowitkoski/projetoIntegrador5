@@ -1,0 +1,12 @@
+vsim work.tb_SRGL
+add wave -position end sim:/tb_SRGL/clk
+add wave -position end sim:/tb_SRGL/mov
+add wave -position end -radix ASCII sim:/tb_SRGL/letra_base
+add wave -position end -radix ASCII sim:/tb_SRGL/letra_final
+add wave -position end -radix Decimal sim:/tb_SRGL/uut/mpu_valor
+add wave -position end -radix Decimal sim:/tb_SRGL/uut/mem_rom
+add wave -position end -radix Decimal sim:/tb_SRGL/uut/mem_ram
+add wave -position end -radix Decimal sim:/tb_SRGL/uut/erro_final
+add wave -position end sim:/tb_SRGL/uut/buffer_full
+
+run -all
