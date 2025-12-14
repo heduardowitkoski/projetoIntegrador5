@@ -109,6 +109,7 @@ module tb_SRGL;
         #20;
         reset = 0;
         #20;
+        mov = 0;
 
         // --------------------------------------------------------------------
         // TESTE 2: Validar Ruído (Entrada = Ruído, Base = D)
