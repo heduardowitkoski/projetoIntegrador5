@@ -3,9 +3,11 @@ module SRGL(
     input wire reset,
     input wire mov, //flag de movimentacao
 
-    input wire signed [959:0] mpu, //30 valores do acelerometro -> 30x32(bits) = 960 bits
-    input wire [4:0] ldr, //5 sinais dos ldrs
+    input wire signed [31:0] mpu_valor, //30 valores do acelerometro -> 30x32(bits) = 960 bits
+    input wire [7:0] letra_base, //letra base vindo do ldr
+    input wire mpu_valid,           // Flag que indica que mpu_valor é válido neste ciclo
 
+    output reg ready
     output reg [7:0] letra_final
 );
 
@@ -21,69 +23,35 @@ localparam signed [31:0] TOLERANCIA_V = 500; // 5.0 * 100
 reg signed [31:0] mem_rom [29:0];
 reg signed [31:0] mem_ram [29:0];
 
-wire signed letra_base[7:0]; //8bits para letras em ASCII
-
 integer i;
 
-// ========================================================================
-// BUFFER DE ENTRADA (RAM)
-// ========================================================================
-// Desempacota o vetorzão de 960 bits para um array de 30 posições
-always @(*) begin
-    a = 32;
-    if(mov) begin
-            for (i = 0; i < 30; i = i + 1) begin
-                //PREENCHE A RAM COM VALORES DO MPU
-                mem_ram[i] = mpu[31+(a*i) : a*i];
+//==============================================
+//PREENCHE BUFFER
+//==============================================
+// Como não podemos receber 960 bits de uma vez, vamos encher a RAM sequencialmente.
+reg [4:0] write_ptr; // Ponteiro para escrever na RAM (0 a 29)
+reg buffer_full;     // Indica que recebemos as 30 amostras
+
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        write_ptr <= 0;
+        buffer_full <= 0;
+    end else begin
+        if (mpu_valid && !buffer_full) begin
+            mem_ram[write_ptr] <= mpu_valor;
+            if (write_ptr == 29) begin
+                buffer_full <= 1; // Buffer cheio, pode processar
+            end else begin
+                write_ptr <= write_ptr + 1;
             end
         end
-
-end
-
-
-// ========================================================================
-// DECODIFICADOR LDR (LETRA BASE)
-// ========================================================================
-reg [7:0] letra_base; // ASCII (char)
-
-always @(*) begin
-    case(ldr)
-        5'b00001: letra_base = "A";
-        5'b11110: letra_base = "B";
-        5'b11111: letra_base = "C";
-        5'b00010: letra_base = "D"; // Base para Z
-        5'b11101: letra_base = "F";
-        5'b00110: letra_base = "U"; // Base para V
-        5'b00101: letra_base = "H";
-        5'b10000: letra_base = "I"; // Base para J
-        5'b00011: letra_base = "L";
-        5'b01110: letra_base = "W";
-        5'b10001: letra_base = "Y";
-        5'b00000: letra_base = "S";
-        default:  letra_base = "?";
-    endcase
-end
-
-wire signed [9:0] letra_encaminhada = mov  ?   ROM_addr    :
-                                    letra_base;
-
-wire signed [31:0] vetor_modelo [29:0];
-wire signed [31:0] a;
-
-//==============================================
-//ESCOLHA NA ROM COM MODELOS E PREENCHE BUFFER
-//==============================================
-always @(*) begin
-    a = 32;
-    if(mov) begin
-            //PEGA O VETOR MODELO COM 30 ELEMENTOS CORRESPONDENTE DA LETRA
-            vetor_modelo = mem_rom[letra_encaminhada];
-            for (i = 0; i < 30; i = i + 1) begin
-                //PREENCHE A RAM COM VALORES DO MPU
-                mem_ram[i] = mpu[31+(a*i) : a*i];
-            end
+        
+        // Reset do buffer se o movimento acabar (opcional, depende do protocolo)
+        if (!mov) begin 
+            write_ptr <= 0;
+            buffer_full <= 0;
         end
-
+    end
 end
 
 reg signed [31:0] tolerancia_atual;
@@ -91,7 +59,7 @@ reg [7:0] letra_alvo_movimento; // Qual letra vira se o movimento for válido?
 reg verificar_movimento;
 
 // ========================================================================
-// LÓGICA DE SELEÇÃO DE MODELO 
+// LÓGICA DE SELEÇÃO DE MODELO
 // ========================================================================
 always @(*) begin
         // Valores padrão (se não houver movimento associado)
@@ -126,7 +94,7 @@ wire signed [31:0] sub, soma_indice, media;
 
 
 // ========================================================================
-// CÁLCULO MATEMÁTICO
+// CÁLCULO MATEMÁTICO  (pensar em como fazer pipeline)
 // ========================================================================
 
 reg signed [31:0] soma_buffer;
@@ -144,8 +112,8 @@ always @(*) begin
 
     // 1. Calcular Médias
     for (i = 0; i < 30; i = i + 1) begin
-        soma_buffer = soma_buffer + buffer_ram[i];
-        soma_modelo = soma_modelo + modelo_selecionado[i];
+        soma_buffer = soma_buffer + mem_ram[i];
+        soma_modelo = soma_modelo + mem_rom[i];
     end
     
     media_buffer = soma_buffer / 30;
@@ -154,7 +122,7 @@ always @(*) begin
     // 2. Calcular Diferença Absoluta Normalizada
     for (i = 0; i < 30; i = i + 1) begin
         // (Buffer - MediaB) - (Modelo - MediaM)
-        diff_norm = (buffer_ram[i] - media_buffer) - (modelo_selecionado[i] - media_modelo);
+        diff_norm = (mem_ram[i] - media_buffer) - (mem_rom[i] - media_modelo);
         
         // Função ABS (Valor Absoluto)
         if (diff_norm < 0) 
@@ -174,14 +142,20 @@ end
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         letra_final <= "?";
+        ready <= 0;
     end else begin
-        // Lógica final:
-        // Se houve movimento detectado (mov=1) E a letra atual requer verificação (verificar_movimento=1)
-        // E o erro calculado for menor que a tolerância...
-        if (mov && verificar_movimento && (erro_final < tolerancia_atual)) begin
-            letra_final <= letra_alvo_movimento; // Ex: vira 'Z'
+        if (buffer_full) begin
+            ready <= 1; // Indica que o resultado é válido
+            
+            // Lógica de decisão
+            if (mov && verificar_movimento && (erro_final < tolerancia_atual)) begin
+                letra_final <= letra_alvo_movimento; // Troca (ex: D -> Z)
+            end else begin
+                letra_final <= letra_base; // Mantém original
+            end
         end else begin
-            letra_final <= letra_base; // Mantém 'D' ou a letra do LDR
+            ready <= 0; // Ainda recebendo dados
+            letra_final <= letra_base; 
         end
     end
 end
