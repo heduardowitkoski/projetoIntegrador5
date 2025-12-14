@@ -7,7 +7,7 @@ module SRGL(
     input wire [7:0] letra_base, //letra base vindo do ldr
     input wire mpu_valid,           // Flag que indica que mpu_valor é válido neste ciclo
 
-    output reg ready
+    output reg ready,
     output reg [7:0] letra_final
 );
 

@@ -8,7 +8,7 @@ module tb_SRGL;
     reg clk;
     reg reset;
     reg mov;
-    reg signed [31:0] mpu_in;
+    reg signed [31:0] mpu_valor;
     reg mpu_valid;
     reg [7:0] letra_base;
 
@@ -22,7 +22,7 @@ module tb_SRGL;
         .clk(clk), 
         .reset(reset), 
         .mov(mov), 
-        .mpu_in(mpu_in), 
+        .mpu_valor(mpu_valor), 
         .mpu_valid(mpu_valid), 
         .letra_base(letra_base), 
         .letra_final(letra_final), 
@@ -63,7 +63,7 @@ module tb_SRGL;
         reset = 1;
         mov = 0;
         mpu_valid = 0;
-        mpu_in = 0;
+        mpu_valor = 0;
         letra_base = "?";
         
         $display("Iniciando Simulacao...");
@@ -85,7 +85,7 @@ module tb_SRGL;
         // Loop para enviar os 30 dados serialmente
         for (k = 0; k < 30; k = k + 1) begin
             @(posedge clk); 
-            mpu_in = padrao_Z[k]; // Coloca o dado na entrada
+            mpu_valor = padrao_Z[k]; // Coloca o dado na entrada
             mpu_valid = 1;        // Sinaliza que é válido
             
             @(posedge clk);       // Espera um clock para o DUT ler
@@ -123,7 +123,7 @@ module tb_SRGL;
         // Isso deve gerar um erro grande e NÃO ativar a troca para Z
         for (k = 0; k < 30; k = k + 1) begin
             @(posedge clk); 
-            mpu_in = 32'd5000; // Valor muito diferente do modelo Z
+            mpu_valor = 32'd5000; // Valor muito diferente do modelo Z
             mpu_valid = 1;
             
             @(posedge clk);
